@@ -73,18 +73,62 @@ describe('GitTransport', () => {
       { repoPath, tempDir: root, runGit },
     );
 
-    expect(await transport.listFiles()).toEqual(['chapters\\one.tex', 'main.tex']);
+    expect(await transport.listFiles()).toEqual([path.join('chapters', 'one.tex'), 'main.tex']);
     expect(await transport.readFile('main.tex')).toBe('main');
     expect(calls.map((call) => call.args)).toContainEqual(['pull']);
-    await expect(Promise.resolve().then(() => transport.resolveSafePath('../outside'))).rejects.toThrow(
-      'escapes the project directory',
-    );
+    expect(() => transport.resolveSafePath(path.join(repoPath, 'main.tex'))).toThrow('must be relative');
+    expect(() => transport.resolveSafePath(path.join(root, 'outside'))).toThrow('must be relative');
+    expect(() => transport.resolveSafePath('../outside')).toThrow('escapes the project directory');
 
     await expect(transport.writeFile('main.tex', 'updated', 'update main')).resolves.toBe('pushed\n');
     expect(await readFile(path.join(repoPath, 'main.tex'), 'utf8')).toBe('updated');
     expect(calls.map((call) => call.args)).toContainEqual(['add', '--', 'main.tex']);
     expect(calls.map((call) => call.args)).toContainEqual(['commit', '-m', 'update main']);
     expect(calls.map((call) => call.args)).toContainEqual(['push']);
+  });
+
+  it('applies a generic updater after one pull and stages only its target', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = path.join(root, 'repo');
+    const target = path.join('chapters', 'one.tex');
+    await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await mkdir(path.join(repoPath, 'chapters'), { recursive: true });
+    await writeFile(path.join(repoPath, target), 'before');
+
+    const calls: readonly string[][] = [];
+    const mutableCalls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      mutableCalls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+
+    await transport.updateFile(target, 'update chapter', (content) => `${content} after`);
+
+    expect(await readFile(path.join(repoPath, target), 'utf8')).toBe('before after');
+    expect(mutableCalls.filter((args) => args[0] === 'pull')).toHaveLength(1);
+    expect(mutableCalls.filter((args) => args[0] === 'add')).toEqual([['add', '--', target]]);
+    expect(calls).toEqual([]);
+  });
+
+  it('does not clone after a non-ENOENT repository access error', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = `${root}${String.fromCharCode(0)}repo`;
+    const mutableCalls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      mutableCalls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+
+    await expect(transport.ensureRepository()).rejects.toThrow();
+    expect(mutableCalls).toEqual([]);
   });
 
   it('maps pull conflicts and rejected pushes to safe user-facing errors', async () => {

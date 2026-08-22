@@ -1,24 +1,38 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-
 import { describe, expect, it, vi } from 'vitest';
 
 import { FileService } from '../src/core/files.js';
 import { ProjectService } from '../src/core/project.js';
-import { GitTransport } from '../src/transports/git/git-transport.js';
+import type { ProjectTransport } from '../src/types.js';
+
+function fakeTransport(files: Record<string, string> = {}): ProjectTransport & {
+  listFiles: ReturnType<typeof vi.fn>;
+  readFile: ReturnType<typeof vi.fn>;
+  writeFile: ReturnType<typeof vi.fn>;
+  updateFile: ReturnType<typeof vi.fn>;
+} {
+  const contents = new Map(Object.entries(files));
+  return {
+    listFiles: vi.fn(async () => [...contents.keys()]),
+    readFile: vi.fn(async (filePath: string) => contents.get(filePath) ?? ''),
+    writeFile: vi.fn(async (filePath: string, content: string) => {
+      contents.set(filePath, content);
+      return 'file written';
+    }),
+    updateFile: vi.fn(async (filePath: string, _commitMessage: string, updater: (content: string) => string) => {
+      const updated = updater(contents.get(filePath) ?? '');
+      contents.set(filePath, updated);
+      return 'file updated';
+    }),
+  };
+}
 
 describe('project and file services', () => {
-  it('selects the default project and caches its transport lifecycle', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-core-test-'));
-    const repoPath = path.join(root, 'repo');
-    await mkdir(path.join(repoPath, '.git'), { recursive: true });
-    await writeFile(path.join(repoPath, 'main.tex'), '\\section{Intro}\nBody');
-    const transport = new GitTransport(
-      { projectId: 'project', gitToken: 'secret-token' },
-      { repoPath, tempDir: root, runGit: async () => ({ stdout: '', stderr: '' }) },
+  it('selects configured projects and caches each transport lifecycle', async () => {
+    const defaultTransport = fakeTransport({ 'main.tex': '\\section{Intro}\nBody' });
+    const secondTransport = fakeTransport({ 'second.tex': 'second' });
+    const factory = vi.fn((project: { projectId: string }) =>
+      project.projectId === 'project' ? defaultTransport : secondTransport,
     );
-    const factory = vi.fn(() => transport);
     const projects = new ProjectService(
       {
         projects: {
@@ -39,7 +53,38 @@ describe('project and file services', () => {
     await expect(files.getSections('main.tex')).resolves.toEqual([
       { type: 'section', title: 'Intro', index: 0 },
     ]);
-    expect(projects.getSecrets()).toEqual(['secret-token', 'second-secret']);
     expect(() => projects.getProject('missing')).toThrow('Project "missing" not found');
+  });
+
+  it('forwards file operations to the selected project transport', async () => {
+    const defaultTransport = fakeTransport({ 'main.tex': '\\section{Intro}\nOld' });
+    const secondTransport = fakeTransport({ 'chapters/one.tex': 'second' });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+        },
+      },
+      {
+        transportFactory: (project) =>
+          project.projectId === 'project' ? defaultTransport : secondTransport,
+      },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.listFiles('second')).resolves.toEqual(['chapters/one.tex']);
+    await expect(files.readFile('chapters/one.tex', 'second')).resolves.toBe('second');
+    await expect(files.writeFile('chapters/one.tex', 'updated', 'write it', 'second')).resolves.toBe('file written');
+    expect(secondTransport.writeFile).toHaveBeenCalledWith('chapters/one.tex', 'updated', 'write it');
+
+    await expect(files.writeSection('main.tex', 'Intro', '\\section{Intro}\nNew', 'section edit')).resolves.toBe(
+      'file updated',
+    );
+    expect(defaultTransport.updateFile).toHaveBeenCalledWith('main.tex', 'section edit', expect.any(Function));
+    const updater = defaultTransport.updateFile.mock.calls[0][2] as (content: string) => string;
+    expect(updater('\\section{Intro}\nOld\n\\section{Next}\nNext')).toBe(
+      '\\section{Intro}\nNew\n\n\\section{Next}\nNext',
+    );
   });
 });

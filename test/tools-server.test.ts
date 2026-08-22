@@ -9,7 +9,7 @@ import { createToolRegistry } from '../src/tools/index.js';
 
 function fakeServices(fileOverrides: Record<string, unknown> = {}) {
   const projectService = {
-    listProjects: () => [{ id: 'default', name: 'Paper', projectId: 'project-id' }],
+    listProjects: vi.fn(() => [{ id: 'default', name: 'Paper', projectId: 'project-id' }]),
   } as unknown as ProjectService;
   const fileService = {
     listFiles: vi.fn(async () => ['main.tex']),
@@ -25,6 +25,10 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
   return { projectService, fileService };
 }
 
+function expectTextResult(result: { content: Array<{ type: string; text?: string }> }, text: string): void {
+  expect(result).toEqual({ content: [{ type: 'text', text }] });
+}
+
 describe('MCP tool registry', () => {
   it('keeps the complete ordered compatibility catalog', () => {
     const registry = createToolRegistry(fakeServices());
@@ -38,23 +42,81 @@ describe('MCP tool registry', () => {
       'write_file',
       'write_section',
     ]);
-    expect(new Set(registry.definitions.map((tool) => tool.name)).size).toBe(8);
     expect(registry.definitions).toMatchSnapshot();
   });
 
-  it('converts core results into the compatibility text results', async () => {
+  it('forwards all handler arguments and returns text results', async () => {
     const services = fakeServices();
     const registry = createToolRegistry(services);
 
-    await expect(registry.handlers.list_projects({})).resolves.toEqual({
-      content: [{ type: 'text', text: '[\n  {\n    "id": "default",\n    "name": "Paper",\n    "projectId": "project-id"\n  }\n]' }],
-    });
-    await expect(registry.handlers.list_files({})).resolves.toEqual({
-      content: [{ type: 'text', text: 'main.tex' }],
-    });
-    await expect(registry.handlers.status_summary({})).resolves.toEqual({
-      content: [{ type: 'text', text: '{\n  "totalFiles": 1,\n  "mainFile": "main.tex",\n  "totalSections": 0,\n  "files": [\n    "main.tex"\n  ]\n}' }],
-    });
+    expectTextResult(
+      await registry.handlers.list_projects({}),
+      '[\n  {\n    "id": "default",\n    "name": "Paper",\n    "projectId": "project-id"\n  }\n]',
+    );
+
+    expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: '.md' }), 'main.tex');
+    expect(services.fileService.listFiles).toHaveBeenCalledWith('second', '.md');
+    expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: '' }), 'main.tex');
+    expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', '.tex');
+
+    expectTextResult(
+      await registry.handlers.read_file({ filePath: 'chapters/one.tex', projectName: 'second' }),
+      'content',
+    );
+    expect(services.fileService.readFile).toHaveBeenCalledWith('chapters/one.tex', 'second');
+
+    expectTextResult(
+      await registry.handlers.get_sections({ filePath: 'chapters/one.tex', projectName: 'second' }),
+      '[]',
+    );
+    expect(services.fileService.getSections).toHaveBeenCalledWith('chapters/one.tex', 'second');
+
+    expectTextResult(
+      await registry.handlers.get_section_content({
+        filePath: 'chapters/one.tex',
+        sectionTitle: 'Intro',
+        projectName: 'second',
+      }),
+      'section',
+    );
+    expect(services.fileService.getSectionContent).toHaveBeenCalledWith('chapters/one.tex', 'Intro', 'second');
+
+    expectTextResult(await registry.handlers.status_summary({ projectName: 'second' }), '{\n  "totalFiles": 1,\n  "mainFile": "main.tex",\n  "totalSections": 0,\n  "files": [\n    "main.tex"\n  ]\n}');
+    expect(services.fileService.statusSummary).toHaveBeenCalledWith('second');
+
+    expectTextResult(
+      await registry.handlers.write_file({
+        filePath: 'chapters/one.tex',
+        content: 'new file',
+        commitMessage: 'write chapter',
+        projectName: 'second',
+      }),
+      'File written and pushed successfully.',
+    );
+    expect(services.fileService.writeFile).toHaveBeenCalledWith(
+      'chapters/one.tex',
+      'new file',
+      'write chapter',
+      'second',
+    );
+
+    expectTextResult(
+      await registry.handlers.write_section({
+        filePath: 'chapters/one.tex',
+        sectionTitle: 'Intro',
+        newContent: '\\section{Intro}\nUpdated',
+        commitMessage: 'update chapter',
+        projectName: 'second',
+      }),
+      'Section written and pushed successfully.',
+    );
+    expect(services.fileService.writeSection).toHaveBeenCalledWith(
+      'chapters/one.tex',
+      'Intro',
+      '\\section{Intro}\nUpdated',
+      'update chapter',
+      'second',
+    );
   });
 });
 
@@ -65,7 +127,7 @@ describe('MCP server boundary', () => {
         throw new Error('https://git:secret-token@git.overleaf.com/project-id');
       }),
     });
-    const server = createServer(services, { secrets: ['secret-token'] });
+    const server = createServer(services);
     const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
