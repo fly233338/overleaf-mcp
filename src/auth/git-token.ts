@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
+import { ConfigurationError } from '../errors.js';
+
 export interface GitTokenResolution {
   token: string;
   source: 'OVERLEAF_GIT_TOKEN' | 'OVERLEAF_GIT_TOKEN_FILE';
@@ -8,7 +10,6 @@ export interface GitTokenResolution {
 export interface GitTokenOptions {
   env?: NodeJS.ProcessEnv;
   readTokenFile?: (filePath: string) => Promise<string>;
-  onWarning?: (message: string) => void;
 }
 
 export async function resolveGitToken(options: GitTokenOptions = {}): Promise<GitTokenResolution | undefined> {
@@ -27,17 +28,17 @@ export async function resolveGitToken(options: GitTokenOptions = {}): Promise<Gi
   try {
     const token = (await readTokenFile(tokenFile)).trim();
     if (!token) {
-      return undefined;
+      throw new ConfigurationError(
+        `[overleaf-mcp] OVERLEAF_GIT_TOKEN_FILE="${tokenFile}" is empty`,
+      );
     }
     return { token, source: 'OVERLEAF_GIT_TOKEN_FILE' };
   } catch (error: unknown) {
-    options.onWarning?.(
-      `[overleaf-mcp] OVERLEAF_GIT_TOKEN_FILE="${tokenFile}" could not be read: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+    if (error instanceof ConfigurationError) {
+      throw error;
+    }
+    throw new ConfigurationError(
+      `[overleaf-mcp] OVERLEAF_GIT_TOKEN_FILE="${tokenFile}" could not be read`,
     );
-    return undefined;
   }
 }
-
-export const readGitToken = resolveGitToken;

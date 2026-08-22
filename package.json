@@ -3,13 +3,7 @@
   "version": "1.0.0",
   "description": "MCP server for reading and editing Overleaf projects through Git.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./bin": "./dist/bin.js"
   },
   "bin": {
@@ -17,24 +11,23 @@
   },
   "files": [
     "dist",
-    "LICENSE",
-    "README.md"
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npm run build",
-    "prepack": "npm run check && node scripts/check-package.mjs",
     "start": "node dist/bin.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^18.19.0",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "3.1.0"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,14 +1,18 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { resolveGitToken } from '../src/auth/git-token.js';
-import { loadProjectsConfig } from '../src/config.js';
+import { loadProjectsConfig, userConfigDir } from '../src/config.js';
 
 async function tempDirectory(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-test-'));
+}
+
+function errorWithCode(code: string, message = code): Error & { code: string } {
+  return Object.assign(new Error(message), { code });
 }
 
 describe('git token resolution', () => {
@@ -36,44 +40,47 @@ describe('git token resolution', () => {
     expect(result).toEqual({ token: 'file-token', source: 'OVERLEAF_GIT_TOKEN_FILE' });
   });
 
-  it('treats an unreadable token file as an unavailable implicit candidate', async () => {
-    const warnings: string[] = [];
-    const result = await resolveGitToken({
-      env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
-      readTokenFile: async () => {
-        throw new Error('ENOENT');
-      },
-      onWarning: (message) => warnings.push(message),
-    });
+  it('fails when the explicit token file cannot be read', async () => {
+    await expect(
+      resolveGitToken({
+        env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
+        readTokenFile: async () => {
+          throw errorWithCode('EACCES', 'permission denied: secret-token');
+        },
+      }),
+    ).rejects.toThrow('OVERLEAF_GIT_TOKEN_FILE="missing-token.txt" could not be read');
 
-    expect(result).toBeUndefined();
-    expect(warnings.join('\n')).not.toContain('file-token');
+    await expect(
+      resolveGitToken({
+        env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
+        readTokenFile: async () => {
+          throw errorWithCode('EACCES', 'permission denied: secret-token');
+        },
+      }),
+    ).rejects.not.toThrow('secret-token');
+  });
+
+  it('fails when the explicit token file is empty', async () => {
+    await expect(
+      resolveGitToken({
+        env: { OVERLEAF_GIT_TOKEN_FILE: 'empty-token.txt' },
+        readTokenFile: async () => ' \r\n',
+      }),
+    ).rejects.toThrow('OVERLEAF_GIT_TOKEN_FILE="empty-token.txt" is empty');
   });
 });
 
 describe('project configuration loading', () => {
-  it('uses environment single-project configuration before files', async () => {
-    const root = await tempDirectory();
-    const configDir = path.join(root, 'config');
-    const cwd = path.join(root, 'cwd');
-    const packageDir = path.join(root, 'package');
-    await Promise.all([
-      mkdir(configDir, { recursive: true }),
-      mkdir(cwd, { recursive: true }),
-      mkdir(packageDir, { recursive: true }),
-    ]);
-    await writeFile(path.join(cwd, 'projects.json'), JSON.stringify({ projects: {} }));
-
+  it('uses direct environment configuration before files', async () => {
     const config = await loadProjectsConfig({
       env: {
         OVERLEAF_PROJECT_ID: 'env-project',
         OVERLEAF_PROJECT_NAME: 'Env project',
         OVERLEAF_GIT_TOKEN: 'env-secret',
       },
-      configDir,
-      cwd,
-      packageDir,
-      onDiagnostic: () => undefined,
+      readConfigFile: async () => {
+        throw new Error('configuration files should not be read');
+      },
     });
 
     expect(config).toEqual({
@@ -83,23 +90,177 @@ describe('project configuration loading', () => {
     });
   });
 
-  it('loads the first valid implicit candidate and normalizes its values', async () => {
+  it('loads an explicit configuration before implicit candidates', async () => {
     const root = await tempDirectory();
+    const explicitPath = path.join(root, 'explicit.json');
     const configDir = path.join(root, 'config');
-    await mkdir(configDir, { recursive: true });
-    await writeFile(
-      path.join(configDir, 'projects.json'),
-      JSON.stringify({ projects: { paper: { name: ' Paper ', projectId: 'paper-id', gitToken: ' token ' } } }),
-    );
-
+    const cwd = path.join(root, 'cwd');
+    const packageDir = path.join(root, 'package');
     const config = await loadProjectsConfig({
-      env: {},
+      env: { OVERLEAF_PROJECTS_CONFIG: explicitPath },
       configDir,
-      cwd: path.join(root, 'cwd'),
-      packageDir: path.join(root, 'package'),
+      cwd,
+      packageDir,
+      readConfigFile: async (filePath) => {
+        expect(filePath).toBe(explicitPath);
+        return JSON.stringify({
+          projects: { explicit: { projectId: 'explicit-id', gitToken: 'explicit-token' } },
+        });
+      },
     });
 
-    expect(config.projects.paper).toEqual({ name: 'Paper', projectId: 'paper-id', gitToken: 'token' });
+    expect(config.projects.explicit).toEqual({
+      name: 'explicit',
+      projectId: 'explicit-id',
+      gitToken: 'explicit-token',
+    });
+  });
+
+  it('loads implicit candidates in user, cwd, then package order', async () => {
+    const root = await tempDirectory();
+    const configDir = path.join(root, 'config');
+    const cwd = path.join(root, 'cwd');
+    const packageDir = path.join(root, 'package');
+    const candidates = [
+      path.join(configDir, 'projects.json'),
+      path.join(cwd, 'projects.json'),
+      path.join(packageDir, 'projects.json'),
+    ];
+    const contents = new Map([
+      [candidates[0], JSON.stringify({ projects: { user: { projectId: 'user-id', gitToken: 'user-token' } } })],
+      [candidates[1], JSON.stringify({ projects: { cwd: { projectId: 'cwd-id', gitToken: 'cwd-token' } } })],
+      [candidates[2], JSON.stringify({ projects: { package: { projectId: 'package-id', gitToken: 'package-token' } } })],
+    ]);
+
+    const readConfigFile = async (filePath: string): Promise<string> => {
+      const content = contents.get(filePath);
+      if (content) {
+        return content;
+      }
+      throw errorWithCode('ENOENT');
+    };
+
+    await expect(loadProjectsConfig({ env: {}, configDir, cwd, packageDir, readConfigFile })).resolves.toMatchObject({
+      projects: { user: { projectId: 'user-id' } },
+    });
+    contents.delete(candidates[0]);
+    await expect(loadProjectsConfig({ env: {}, configDir, cwd, packageDir, readConfigFile })).resolves.toMatchObject({
+      projects: { cwd: { projectId: 'cwd-id' } },
+    });
+    contents.delete(candidates[1]);
+    await expect(loadProjectsConfig({ env: {}, configDir, cwd, packageDir, readConfigFile })).resolves.toMatchObject({
+      projects: { package: { projectId: 'package-id' } },
+    });
+  });
+
+  it('falls back only when an implicit candidate is missing', async () => {
+    const root = await tempDirectory();
+    const configDir = path.join(root, 'config');
+    const cwd = path.join(root, 'cwd');
+    const packageDir = path.join(root, 'package');
+    const readPaths: string[] = [];
+
+    await expect(
+      loadProjectsConfig({
+        env: {},
+        configDir,
+        cwd,
+        packageDir,
+        readConfigFile: async (filePath) => {
+          readPaths.push(filePath);
+          throw errorWithCode('ENOENT');
+        },
+      }),
+    ).rejects.toThrow('No configuration found');
+
+    expect(readPaths).toEqual([
+      path.join(configDir, 'projects.json'),
+      path.join(cwd, 'projects.json'),
+      path.join(packageDir, 'projects.json'),
+    ]);
+  });
+
+  it('fails immediately when an implicit candidate contains invalid JSON', async () => {
+    const root = await tempDirectory();
+    const configDir = path.join(root, 'config');
+    const cwd = path.join(root, 'cwd');
+    const packageDir = path.join(root, 'package');
+    const userPath = path.join(configDir, 'projects.json');
+    const cwdPath = path.join(cwd, 'projects.json');
+
+    await expect(
+      loadProjectsConfig({
+        env: {},
+        configDir,
+        cwd,
+        packageDir,
+        readConfigFile: async (filePath) => {
+          if (filePath === userPath) {
+            return '{';
+          }
+          if (filePath === cwdPath) {
+            return JSON.stringify({ projects: {} });
+          }
+          throw errorWithCode('ENOENT');
+        },
+      }),
+    ).rejects.toThrow(`config file "${userPath}" is not valid JSON`);
+  });
+
+  it('fails immediately when an implicit candidate cannot be read', async () => {
+    const root = await tempDirectory();
+    const configDir = path.join(root, 'config');
+    const userPath = path.join(configDir, 'projects.json');
+
+    await expect(
+      loadProjectsConfig({
+        env: {},
+        configDir,
+        cwd: path.join(root, 'cwd'),
+        packageDir: path.join(root, 'package'),
+        readConfigFile: async () => {
+          throw errorWithCode('EACCES', 'permission denied: secret-token');
+        },
+      }),
+    ).rejects.toThrow(`config file "${userPath}" could not be read`);
+
+    await expect(
+      loadProjectsConfig({
+        env: {},
+        configDir,
+        cwd: path.join(root, 'cwd'),
+        packageDir: path.join(root, 'package'),
+        readConfigFile: async () => {
+          throw errorWithCode('EACCES', 'permission denied: secret-token');
+        },
+      }),
+    ).rejects.not.toThrow('secret-token');
+  });
+
+  it('reports an error when every implicit candidate is missing', async () => {
+    await expect(
+      loadProjectsConfig({
+        env: {},
+        configDir: 'config',
+        cwd: 'cwd',
+        packageDir: 'package',
+        readConfigFile: async () => {
+          throw errorWithCode('ENOENT');
+        },
+      }),
+    ).rejects.toThrow('No configuration found');
+  });
+
+  it('uses the platform-specific user configuration directory', () => {
+    expect(userConfigDir({ APPDATA: 'C:\\Users\\tester\\AppData\\Roaming' }, 'win32', 'C:\\Users\\tester')).toBe(
+      path.join('C:\\Users\\tester\\AppData\\Roaming', 'overleaf-mcp'),
+    );
+    expect(userConfigDir({ XDG_CONFIG_HOME: '/tmp/xdg' }, 'linux', '/home/tester')).toBe(
+      path.join('/tmp/xdg', 'overleaf-mcp'),
+    );
+    expect(userConfigDir({}, 'linux', '/home/tester')).toBe(
+      path.join('/home/tester', '.config', 'overleaf-mcp'),
+    );
   });
 
   it('treats an explicit missing configuration as an error', async () => {
@@ -107,25 +268,15 @@ describe('project configuration loading', () => {
       loadProjectsConfig({
         env: { OVERLEAF_PROJECTS_CONFIG: 'missing-projects.json' },
         readConfigFile: async () => {
-          throw new Error('ENOENT');
+          throw errorWithCode('ENOENT');
         },
       }),
     ).rejects.toThrow('could not be read');
   });
 
   it('rejects invalid project shapes without exposing token values', async () => {
-    const raw = JSON.stringify({ projects: { paper: { projectId: 'paper-id', gitToken: 'secret-token' } } });
-
-    await expect(
-      loadProjectsConfig({
-        env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
-        readConfigFile: async () => raw,
-      }),
-    ).resolves.toEqual({
-      projects: { paper: { name: 'paper', projectId: 'paper-id', gitToken: 'secret-token' } },
-    });
-
     const invalid = JSON.stringify({ projects: { paper: { name: 'Paper', projectId: 'bad id', gitToken: 'secret-token' } } });
+
     await expect(
       loadProjectsConfig({
         env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
@@ -140,7 +291,7 @@ describe('project configuration loading', () => {
     ).rejects.not.toThrow('secret-token');
   });
 
-  it('does not read a token back through ordinary configuration loading', async () => {
+  it('loads a token file for direct environment configuration', async () => {
     const root = await tempDirectory();
     const tokenPath = path.join(root, 'token.txt');
     await writeFile(tokenPath, 'secret-token\n');
@@ -148,7 +299,6 @@ describe('project configuration loading', () => {
     const config = await loadProjectsConfig({
       env: { OVERLEAF_PROJECT_ID: 'project', OVERLEAF_GIT_TOKEN_FILE: tokenPath },
       configDir: path.join(root, 'config'),
-      onDiagnostic: () => undefined,
     });
 
     expect(config.projects.default.gitToken).toBe(token.trim());
@@ -161,7 +311,6 @@ describe('project configuration loading', () => {
           OVERLEAF_PROJECT_ID: 'bad project id',
           OVERLEAF_GIT_TOKEN: 'secret-token',
         },
-        onDiagnostic: () => undefined,
       }),
     ).rejects.toThrow(/projectId.*whitespace/);
     await expect(
@@ -170,7 +319,6 @@ describe('project configuration loading', () => {
           OVERLEAF_PROJECT_ID: 'bad project id',
           OVERLEAF_GIT_TOKEN: 'secret-token',
         },
-        onDiagnostic: () => undefined,
       }),
     ).rejects.not.toThrow('secret-token');
   });

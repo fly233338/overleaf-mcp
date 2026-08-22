@@ -15,7 +15,6 @@ export interface ConfigLoadOptions {
   homeDir?: string;
   platform?: NodeJS.Platform;
   readConfigFile?: (filePath: string) => Promise<string>;
-  onDiagnostic?: (message: string) => void;
 }
 
 interface RawProject {
@@ -46,32 +45,11 @@ export async function loadProjectsConfig(options: ConfigLoadOptions = {}): Promi
   const configDir = options.configDir ?? userConfigDir(env, options.platform, options.homeDir);
   const packageDir = options.packageDir ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const readConfigFile = options.readConfigFile ?? ((filePath: string) => readFile(filePath, 'utf8'));
-  const onDiagnostic = options.onDiagnostic ?? ((message: string) => console.error(message));
 
-  const tokenResolution = await resolveGitToken({
-    env,
-    onWarning: onDiagnostic,
-  });
+  const tokenResolution = await resolveGitToken({ env });
   const projectId = env.OVERLEAF_PROJECT_ID?.trim();
 
   if (projectId && tokenResolution) {
-    const shadowCandidates = [
-      env.OVERLEAF_PROJECTS_CONFIG,
-      path.join(configDir, 'projects.json'),
-      path.join(cwd, 'projects.json'),
-      path.join(packageDir, 'projects.json'),
-    ].filter((candidate): candidate is string => Boolean(candidate));
-
-    for (const candidate of shadowCandidates) {
-      if (await canReadJson(candidate, readConfigFile)) {
-        onDiagnostic(
-          `[overleaf-mcp] Using env vars (OVERLEAF_PROJECT_ID + ${tokenResolution.source}). ` +
-            `Also found projects.json at ${candidate} — env vars take priority.`,
-        );
-        break;
-      }
-    }
-
     return validateConfig(
       {
         projects: {
@@ -124,9 +102,7 @@ async function readExplicitConfig(
     raw = await readConfigFile(filePath);
   } catch (error: unknown) {
     throw new ConfigurationError(
-      `[overleaf-mcp] OVERLEAF_PROJECTS_CONFIG="${filePath}" could not be read: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `[overleaf-mcp] OVERLEAF_PROJECTS_CONFIG="${filePath}" could not be read`,
     );
   }
 
@@ -145,18 +121,35 @@ async function tryReadJson(
   filePath: string,
   readConfigFile: (filePath: string) => Promise<string>,
 ): Promise<unknown | undefined> {
+  let raw: string;
   try {
-    return JSON.parse(await readConfigFile(filePath)) as unknown;
-  } catch {
-    return undefined;
+    raw = await readConfigFile(filePath);
+  } catch (error: unknown) {
+    if (errorCode(error) === 'ENOENT') {
+      return undefined;
+    }
+    throw new ConfigurationError(
+      `[overleaf-mcp] config file "${filePath}" could not be read`,
+    );
+  }
+
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (error: unknown) {
+    throw new ConfigurationError(
+      `[overleaf-mcp] config file "${filePath}" is not valid JSON: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
-async function canReadJson(
-  filePath: string,
-  readConfigFile: (filePath: string) => Promise<string>,
-): Promise<boolean> {
-  return (await tryReadJson(filePath, readConfigFile)) !== undefined;
+function errorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+  const code = error.code;
+  return typeof code === 'string' ? code : undefined;
 }
 
 function validateConfig(data: unknown, sourceLabel: string): ProjectsConfig {
