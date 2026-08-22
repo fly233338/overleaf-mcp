@@ -48,6 +48,28 @@ Next body.
 \end{document}`,
     );
   });
+
+  it('replaces the last section up to end document and preserves the marker', () => {
+    const replacement = String.raw`\section{Final}
+Final body.`;
+    expect(replaceSection(document, 'Next', replacement)).toBe(
+      String.raw`\documentclass{article}
+\begin{document}
+\section[Short]{Use of \emph{nested} braces}
+Intro.
+\subsection*{Details}
+Details.
+\section{Final}
+Final body.
+
+\end{document}`,
+    );
+  });
+
+  it('reports when a requested section does not exist', () => {
+    expect(() => getSectionContent(document, 'Missing')).toThrow('Section "Missing" not found');
+    expect(() => replaceSection(document, 'Missing', 'replacement')).toThrow('Section "Missing" not found');
+  });
 });
 
 describe('GitTransport', () => {
@@ -95,10 +117,9 @@ describe('GitTransport', () => {
     await mkdir(path.join(repoPath, 'chapters'), { recursive: true });
     await writeFile(path.join(repoPath, target), 'before');
 
-    const calls: readonly string[][] = [];
-    const mutableCalls: string[][] = [];
+    const calls: string[][] = [];
     const runGit: GitCommandRunner = async (args) => {
-      mutableCalls.push([...args]);
+      calls.push([...args]);
       return { stdout: '', stderr: '' };
     };
     const transport = new GitTransport(
@@ -109,9 +130,12 @@ describe('GitTransport', () => {
     await transport.updateFile(target, 'update chapter', (content) => `${content} after`);
 
     expect(await readFile(path.join(repoPath, target), 'utf8')).toBe('before after');
-    expect(mutableCalls.filter((args) => args[0] === 'pull')).toHaveLength(1);
-    expect(mutableCalls.filter((args) => args[0] === 'add')).toEqual([['add', '--', target]]);
-    expect(calls).toEqual([]);
+    expect(calls).toEqual([
+      ['pull'],
+      ['add', '--', target],
+      ['commit', '-m', 'update chapter'],
+      ['push'],
+    ]);
   });
 
   it('does not clone after a non-ENOENT repository access error', async () => {

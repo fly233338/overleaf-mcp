@@ -56,6 +56,38 @@ describe('project and file services', () => {
     expect(() => projects.getProject('missing')).toThrow('Project "missing" not found');
   });
 
+  it('summarizes the selected project and limits the displayed files', async () => {
+    const projectFiles = [...Array.from({ length: 11 }, (_, index) => `chapter-${index + 1}.tex`), 'main.tex'];
+    const selectedTransport = fakeTransport(
+      Object.fromEntries(projectFiles.map((filePath) => [filePath, filePath === 'main.tex' ? '\\section{Intro}\nBody' : 'content'])),
+    );
+    const otherTransport = fakeTransport({ 'other.tex': 'other' });
+    const projects = new ProjectService(
+      {
+        projects: {
+          paper: { name: 'Paper', projectId: 'paper-id', gitToken: 'paper-secret' },
+          other: { name: 'Other', projectId: 'other-id', gitToken: 'other-secret' },
+        },
+      },
+      {
+        transportFactory: (project) =>
+          project.projectId === 'paper-id' ? selectedTransport : otherTransport,
+      },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.statusSummary('paper')).resolves.toEqual({
+      totalFiles: 12,
+      mainFile: 'main.tex',
+      totalSections: 1,
+      files: projectFiles.slice(0, 10),
+    });
+    expect(selectedTransport.listFiles).toHaveBeenCalledWith('.tex');
+    expect(selectedTransport.readFile).toHaveBeenCalledWith('main.tex');
+    expect(otherTransport.listFiles).not.toHaveBeenCalled();
+    expect(otherTransport.readFile).not.toHaveBeenCalled();
+  });
+
   it('forwards file operations to the selected project transport', async () => {
     const defaultTransport = fakeTransport({ 'main.tex': '\\section{Intro}\nOld' });
     const secondTransport = fakeTransport({ 'chapters/one.tex': 'second' });
