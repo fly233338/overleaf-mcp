@@ -19,7 +19,7 @@ export async function main(): Promise<void> {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(async (error: unknown) => {
+  main().catch((error: unknown) => {
     console.error(`[overleaf-mcp] Fatal error: ${maskToken(errorMessage(error))}`);
     process.exitCode = 1;
   });
