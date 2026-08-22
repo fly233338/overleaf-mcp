@@ -9,7 +9,11 @@ if (!binSource.startsWith('#!/usr/bin/env node')) {
   throw new Error('published bin is missing its node shebang');
 }
 
-const raw = execFileSync('npm.cmd', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
+const packCommand = process.platform === 'win32' ? process.env.ComSpec ?? 'cmd.exe' : 'npm';
+const packArgs = process.platform === 'win32'
+  ? ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json --ignore-scripts']
+  : ['pack', '--dry-run', '--json', '--ignore-scripts'];
+const raw = execFileSync(packCommand, packArgs, {
   encoding: 'utf8',
   stdio: ['ignore', 'pipe', 'inherit'],
 });

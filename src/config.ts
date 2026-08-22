@@ -72,15 +72,18 @@ export async function loadProjectsConfig(options: ConfigLoadOptions = {}): Promi
       }
     }
 
-    return {
-      projects: {
-        default: {
-          name: env.OVERLEAF_PROJECT_NAME?.trim() || 'Overleaf Project',
-          projectId,
-          gitToken: tokenResolution.token,
+    return validateConfig(
+      {
+        projects: {
+          default: {
+            name: env.OVERLEAF_PROJECT_NAME?.trim() || 'Overleaf Project',
+            projectId,
+            gitToken: tokenResolution.token,
+          },
         },
       },
-    };
+      'env vars',
+    );
   }
 
   const explicitConfig = env.OVERLEAF_PROJECTS_CONFIG?.trim();

@@ -153,4 +153,25 @@ describe('project configuration loading', () => {
 
     expect(config.projects.default.gitToken).toBe(token.trim());
   });
+
+  it('validates the environment project id without exposing the token', async () => {
+    await expect(
+      loadProjectsConfig({
+        env: {
+          OVERLEAF_PROJECT_ID: 'bad project id',
+          OVERLEAF_GIT_TOKEN: 'secret-token',
+        },
+        onDiagnostic: () => undefined,
+      }),
+    ).rejects.toThrow(/projectId.*whitespace/);
+    await expect(
+      loadProjectsConfig({
+        env: {
+          OVERLEAF_PROJECT_ID: 'bad project id',
+          OVERLEAF_GIT_TOKEN: 'secret-token',
+        },
+        onDiagnostic: () => undefined,
+      }),
+    ).rejects.not.toThrow('secret-token');
+  });
 });
