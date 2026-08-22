@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+temp/
+projects.json
+.env
+.env.*
+*.log
+*.tgz
+AGENTS.md
+docs/
