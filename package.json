@@ -7,7 +7,7 @@
     "./bin": "./dist/bin.js"
   },
   "bin": {
-    "overleaf-mcp": "./dist/bin.js"
+    "overleaf-mcp": "dist/bin.js"
   },
   "files": [
     "dist",
