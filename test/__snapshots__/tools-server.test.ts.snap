@@ -1,0 +1,174 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`] = `
+[
+  {
+    "description": "List all configured Overleaf projects",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+    },
+    "name": "list_projects",
+  },
+  {
+    "description": "List files in an Overleaf project",
+    "inputSchema": {
+      "properties": {
+        "extension": {
+          "description": "File extension filter (optional, e.g., ".tex")",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional, defaults to "default")",
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "list_files",
+  },
+  {
+    "description": "Read a file from an Overleaf project",
+    "inputSchema": {
+      "properties": {
+        "filePath": {
+          "description": "Path to the file",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+      ],
+      "type": "object",
+    },
+    "name": "read_file",
+  },
+  {
+    "description": "Get all sections from a LaTeX file",
+    "inputSchema": {
+      "properties": {
+        "filePath": {
+          "description": "Path to the LaTeX file",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+      ],
+      "type": "object",
+    },
+    "name": "get_sections",
+  },
+  {
+    "description": "Get content of a specific section",
+    "inputSchema": {
+      "properties": {
+        "filePath": {
+          "description": "Path to the LaTeX file",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+        "sectionTitle": {
+          "description": "Title of the section",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+        "sectionTitle",
+      ],
+      "type": "object",
+    },
+    "name": "get_section_content",
+  },
+  {
+    "description": "Get a comprehensive project status summary",
+    "inputSchema": {
+      "properties": {
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "status_summary",
+  },
+  {
+    "description": "Write content to a file in an Overleaf project and push to Overleaf",
+    "inputSchema": {
+      "properties": {
+        "commitMessage": {
+          "description": "Git commit message",
+          "type": "string",
+        },
+        "content": {
+          "description": "Full file content to write",
+          "type": "string",
+        },
+        "filePath": {
+          "description": "Path to the file",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+        "content",
+        "commitMessage",
+      ],
+      "type": "object",
+    },
+    "name": "write_file",
+  },
+  {
+    "description": "Replace a single section in a LaTeX file and push to Overleaf. Safer than write_file for targeted edits — only the named section is replaced, leaving the rest of the file untouched.",
+    "inputSchema": {
+      "properties": {
+        "commitMessage": {
+          "description": "Git commit message",
+          "type": "string",
+        },
+        "filePath": {
+          "description": "Path to the file",
+          "type": "string",
+        },
+        "newContent": {
+          "description": "Full replacement content for the section, including the section heading",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+        "sectionTitle": {
+          "description": "Title of the section to replace (must match exactly)",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+        "sectionTitle",
+        "newContent",
+        "commitMessage",
+      ],
+      "type": "object",
+    },
+    "name": "write_section",
+  },
+]
+`;

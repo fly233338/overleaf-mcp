@@ -1,12 +1,29 @@
 #!/usr/bin/env node
 
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { pathToFileURL } from 'node:url';
+
+import { loadProjectsConfig } from './config.js';
+import { errorMessage, maskToken } from './errors.js';
+import { FileService } from './core/files.js';
+import { ProjectService } from './core/project.js';
+import { createServer } from './server.js';
+
 export async function main(): Promise<void> {
-  console.error('[overleaf-mcp] server implementation is not initialized');
+  const config = await loadProjectsConfig();
+  const projectService = new ProjectService(config);
+  const fileService = new FileService(projectService);
+  const server = createServer(
+    { projectService, fileService },
+    { secrets: projectService.getSecrets() },
+  );
+  await server.connect(new StdioServerTransport());
+  console.error('Overleaf MCP server running on stdio');
 }
 
-if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  main().catch((error: unknown) => {
-    console.error(`[overleaf-mcp] ${error instanceof Error ? error.message : String(error)}`);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(async (error: unknown) => {
+    console.error(`[overleaf-mcp] Fatal error: ${maskToken(errorMessage(error))}`);
     process.exitCode = 1;
   });
 }
