@@ -46,8 +46,8 @@ export async function loadProjectsConfig(options: ConfigLoadOptions = {}): Promi
   const packageDir = options.packageDir ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const readConfigFile = options.readConfigFile ?? ((filePath: string) => readFile(filePath, 'utf8'));
 
-  const tokenResolution = await resolveGitToken({ env });
   const projectId = env.OVERLEAF_PROJECT_ID?.trim();
+  const tokenResolution = projectId ? await resolveGitToken({ env }) : undefined;
 
   if (projectId && tokenResolution) {
     return validateConfig(

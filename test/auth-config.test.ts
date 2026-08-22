@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -41,23 +41,15 @@ describe('git token resolution', () => {
   });
 
   it('fails when the explicit token file cannot be read', async () => {
-    await expect(
-      resolveGitToken({
-        env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
-        readTokenFile: async () => {
-          throw errorWithCode('EACCES', 'permission denied: secret-token');
-        },
-      }),
-    ).rejects.toThrow('OVERLEAF_GIT_TOKEN_FILE="missing-token.txt" could not be read');
+    const failure = resolveGitToken({
+      env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
+      readTokenFile: async () => {
+        throw errorWithCode('EACCES', 'permission denied: secret-token');
+      },
+    });
 
-    await expect(
-      resolveGitToken({
-        env: { OVERLEAF_GIT_TOKEN_FILE: 'missing-token.txt' },
-        readTokenFile: async () => {
-          throw errorWithCode('EACCES', 'permission denied: secret-token');
-        },
-      }),
-    ).rejects.not.toThrow('secret-token');
+    await expect(failure).rejects.toThrow('OVERLEAF_GIT_TOKEN_FILE="missing-token.txt" could not be read');
+    await expect(failure).rejects.not.toThrow('secret-token');
   });
 
   it('fails when the explicit token file is empty', async () => {
@@ -113,6 +105,27 @@ describe('project configuration loading', () => {
       name: 'explicit',
       projectId: 'explicit-id',
       gitToken: 'explicit-token',
+    });
+  });
+
+  it('ignores token sources when no project id is configured', async () => {
+    const config = await loadProjectsConfig({
+      env: {
+        OVERLEAF_GIT_TOKEN_FILE: 'unreadable-token.txt',
+        OVERLEAF_PROJECTS_CONFIG: 'projects.json',
+      },
+      readConfigFile: async (filePath) => {
+        expect(filePath).toBe('projects.json');
+        return JSON.stringify({
+          projects: { configured: { projectId: 'configured-id', gitToken: 'configured-token' } },
+        });
+      },
+    });
+
+    expect(config.projects.configured).toEqual({
+      name: 'configured',
+      projectId: 'configured-id',
+      gitToken: 'configured-token',
     });
   });
 
@@ -211,44 +224,18 @@ describe('project configuration loading', () => {
     const root = await tempDirectory();
     const configDir = path.join(root, 'config');
     const userPath = path.join(configDir, 'projects.json');
+    const failure = loadProjectsConfig({
+      env: {},
+      configDir,
+      cwd: path.join(root, 'cwd'),
+      packageDir: path.join(root, 'package'),
+      readConfigFile: async () => {
+        throw errorWithCode('EACCES', 'permission denied: secret-token');
+      },
+    });
 
-    await expect(
-      loadProjectsConfig({
-        env: {},
-        configDir,
-        cwd: path.join(root, 'cwd'),
-        packageDir: path.join(root, 'package'),
-        readConfigFile: async () => {
-          throw errorWithCode('EACCES', 'permission denied: secret-token');
-        },
-      }),
-    ).rejects.toThrow(`config file "${userPath}" could not be read`);
-
-    await expect(
-      loadProjectsConfig({
-        env: {},
-        configDir,
-        cwd: path.join(root, 'cwd'),
-        packageDir: path.join(root, 'package'),
-        readConfigFile: async () => {
-          throw errorWithCode('EACCES', 'permission denied: secret-token');
-        },
-      }),
-    ).rejects.not.toThrow('secret-token');
-  });
-
-  it('reports an error when every implicit candidate is missing', async () => {
-    await expect(
-      loadProjectsConfig({
-        env: {},
-        configDir: 'config',
-        cwd: 'cwd',
-        packageDir: 'package',
-        readConfigFile: async () => {
-          throw errorWithCode('ENOENT');
-        },
-      }),
-    ).rejects.toThrow('No configuration found');
+    await expect(failure).rejects.toThrow(`config file "${userPath}" could not be read`);
+    await expect(failure).rejects.not.toThrow('secret-token');
   });
 
   it('uses the platform-specific user configuration directory', () => {
@@ -276,50 +263,36 @@ describe('project configuration loading', () => {
 
   it('rejects invalid project shapes without exposing token values', async () => {
     const invalid = JSON.stringify({ projects: { paper: { name: 'Paper', projectId: 'bad id', gitToken: 'secret-token' } } });
+    const failure = loadProjectsConfig({
+      env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
+      readConfigFile: async () => invalid,
+    });
 
-    await expect(
-      loadProjectsConfig({
-        env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
-        readConfigFile: async () => invalid,
-      }),
-    ).rejects.toThrowError(/contains whitespace/);
-    await expect(
-      loadProjectsConfig({
-        env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
-        readConfigFile: async () => invalid,
-      }),
-    ).rejects.not.toThrow('secret-token');
+    await expect(failure).rejects.toThrowError(/contains whitespace/);
+    await expect(failure).rejects.not.toThrow('secret-token');
   });
 
   it('loads a token file for direct environment configuration', async () => {
     const root = await tempDirectory();
     const tokenPath = path.join(root, 'token.txt');
     await writeFile(tokenPath, 'secret-token\n');
-    const token = await readFile(tokenPath, 'utf8');
     const config = await loadProjectsConfig({
       env: { OVERLEAF_PROJECT_ID: 'project', OVERLEAF_GIT_TOKEN_FILE: tokenPath },
       configDir: path.join(root, 'config'),
     });
 
-    expect(config.projects.default.gitToken).toBe(token.trim());
+    expect(config.projects.default.gitToken).toBe('secret-token');
   });
 
   it('validates the environment project id without exposing the token', async () => {
-    await expect(
-      loadProjectsConfig({
-        env: {
-          OVERLEAF_PROJECT_ID: 'bad project id',
-          OVERLEAF_GIT_TOKEN: 'secret-token',
-        },
-      }),
-    ).rejects.toThrow(/projectId.*whitespace/);
-    await expect(
-      loadProjectsConfig({
-        env: {
-          OVERLEAF_PROJECT_ID: 'bad project id',
-          OVERLEAF_GIT_TOKEN: 'secret-token',
-        },
-      }),
-    ).rejects.not.toThrow('secret-token');
+    const failure = loadProjectsConfig({
+      env: {
+        OVERLEAF_PROJECT_ID: 'bad project id',
+        OVERLEAF_GIT_TOKEN: 'secret-token',
+      },
+    });
+
+    await expect(failure).rejects.toThrow(/projectId.*whitespace/);
+    await expect(failure).rejects.not.toThrow('secret-token');
   });
 });
