@@ -9,13 +9,11 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function maskToken(value: unknown, secrets: readonly string[] = []): string {
+export function maskToken(value: unknown, token?: string): string {
   let message = String(value ?? '');
 
-  for (const secret of secrets) {
-    if (secret) {
-      message = message.split(secret).join('***');
-    }
+  if (token) {
+    message = message.split(token).join('***');
   }
 
   return message.replace(/https:\/\/git:[^@\s]+@/gi, 'https://git:***@');

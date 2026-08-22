@@ -1,22 +1,22 @@
 import { GitTransport, type GitTransportOptions } from '../transports/git/git-transport.js';
-import type { ProjectConfig, ProjectSummary, ProjectsConfig } from '../types.js';
+import type { ProjectConfig, ProjectSummary, ProjectsConfig, ProjectTransport } from '../types.js';
 
 export interface ProjectServiceOptions {
   transportOptions?: GitTransportOptions;
-  transportFactory?: (project: ProjectConfig, options: GitTransportOptions) => GitTransport;
+  transportFactory?: (project: ProjectConfig, options: GitTransportOptions) => ProjectTransport;
 }
 
 export interface SelectedProject {
   id: string;
   config: ProjectConfig;
-  transport: GitTransport;
+  transport: ProjectTransport;
 }
 
 export class ProjectService {
   private readonly config: ProjectsConfig;
   private readonly transportOptions: GitTransportOptions;
-  private readonly transportFactory: (project: ProjectConfig, options: GitTransportOptions) => GitTransport;
-  private readonly transports = new Map<string, GitTransport>();
+  private readonly transportFactory: (project: ProjectConfig, options: GitTransportOptions) => ProjectTransport;
+  private readonly transports = new Map<string, ProjectTransport>();
 
   constructor(config: ProjectsConfig, options: ProjectServiceOptions = {}) {
     this.config = config;
@@ -47,7 +47,4 @@ export class ProjectService {
     return { id: projectName, config: project, transport };
   }
 
-  getSecrets(): string[] {
-    return Object.values(this.config.projects).map((project) => project.gitToken);
-  }
 }

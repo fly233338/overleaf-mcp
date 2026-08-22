@@ -5,8 +5,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { errorMessage, maskToken } from '../../errors.js';
-import { replaceSection } from '../../latex/sections.js';
-import type { ProjectConfig } from '../../types.js';
+import type { ProjectConfig, ProjectTransport } from '../../types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -32,7 +31,7 @@ export interface GitTransportOptions {
   runGit?: GitCommandRunner;
 }
 
-export class GitTransport {
+export class GitTransport implements ProjectTransport {
   readonly projectId: string;
   readonly repoPath: string;
 
@@ -56,13 +55,12 @@ export class GitTransport {
     try {
       await access(path.join(this.repoPath, '.git'));
       return true;
-    } catch {
-      return false;
+    } catch (error: unknown) {
+      if (errorCode(error) === 'ENOENT') {
+        return false;
+      }
+      throw error;
     }
-  }
-
-  async cloneOrPull(): Promise<string> {
-    return this.ensureRepository();
   }
 
   async ensureRepository(): Promise<string> {
@@ -86,6 +84,9 @@ export class GitTransport {
   }
 
   resolveSafePath(filePath: string): string {
+    if (path.isAbsolute(filePath)) {
+      throw new Error(`filePath "${filePath}" must be relative to the project directory`);
+    }
     const repoRoot = path.resolve(this.repoPath);
     const fullPath = path.resolve(repoRoot, filePath);
     const relative = path.relative(repoRoot, fullPath);
@@ -133,17 +134,16 @@ export class GitTransport {
     return this.commitAndPush(fullPath, commitMessage);
   }
 
-  async writeSection(
+  async updateFile(
     filePath: string,
-    sectionTitle: string,
-    newContent: string,
     commitMessage: string,
+    updater: (content: string) => string,
   ): Promise<string> {
     this.assertCommitMessage(commitMessage);
     await this.synchronizeForWrite();
     const fullPath = this.resolveSafePath(filePath);
     const currentContent = await readFile(fullPath, 'utf8');
-    await writeFile(fullPath, replaceSection(currentContent, sectionTitle, newContent), 'utf8');
+    await writeFile(fullPath, updater(currentContent), 'utf8');
     return this.commitAndPush(fullPath, commitMessage);
   }
 
@@ -190,9 +190,17 @@ export class GitTransport {
         .filter((part): part is unknown => part !== undefined && part !== '')
         .map((part) => String(part))
         .join('\n');
-      throw new Error(maskToken(output, [this.gitToken]));
+      throw new Error(maskToken(output, this.gitToken));
     }
   }
+}
+
+function errorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+  const code = error.code;
+  return typeof code === 'string' ? code : undefined;
 }
 
 async function defaultGitCommand(

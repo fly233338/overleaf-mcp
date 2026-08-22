@@ -13,10 +13,7 @@ export async function main(): Promise<void> {
   const config = await loadProjectsConfig();
   const projectService = new ProjectService(config);
   const fileService = new FileService(projectService);
-  const server = createServer(
-    { projectService, fileService },
-    { secrets: projectService.getSecrets() },
-  );
+  const server = createServer({ projectService, fileService });
   await server.connect(new StdioServerTransport());
   console.error('Overleaf MCP server running on stdio');
 }

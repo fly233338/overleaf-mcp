@@ -8,11 +8,7 @@ import {
 import { errorMessage, maskToken } from './errors.js';
 import { createToolRegistry, type ToolServices } from './tools/index.js';
 
-export interface ServerOptions {
-  secrets?: readonly string[];
-}
-
-export function createServer(services: ToolServices, options: ServerOptions = {}): Server {
+export function createServer(services: ToolServices): Server {
   const registry = createToolRegistry(services);
   const server = new Server(
     {
@@ -42,7 +38,7 @@ export function createServer(services: ToolServices, options: ServerOptions = {}
         content: [
           {
             type: 'text',
-            text: `Error: ${maskToken(errorMessage(error), options.secrets)}`,
+            text: `Error: ${maskToken(errorMessage(error))}`,
           },
         ],
         isError: true,

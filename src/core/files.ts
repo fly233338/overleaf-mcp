@@ -1,4 +1,4 @@
-import { getSectionContent, parseSections } from '../latex/sections.js';
+import { getSectionContent, parseSections, replaceSection } from '../latex/sections.js';
 import type { Section } from '../types.js';
 import { ProjectService } from './project.js';
 
@@ -54,8 +54,9 @@ export class FileService {
     commitMessage: string,
     projectName?: string,
   ): Promise<string> {
-    return this.projects
-      .getProject(projectName)
-      .transport.writeSection(filePath, sectionTitle, newContent, commitMessage);
+    const transport = this.projects.getProject(projectName).transport;
+    return transport.updateFile(filePath, commitMessage, (content) =>
+      replaceSection(content, sectionTitle, newContent),
+    );
   }
 }

@@ -57,7 +57,8 @@ export async function handleListFiles(
   fileService: FileService,
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
-  const files = await fileService.listFiles(optionalString(args.projectName), optionalString(args.extension));
+  const extension = optionalString(args.extension);
+  const files = await fileService.listFiles(optionalString(args.projectName), extension || '.tex');
   return textResult(files.join('\n'));
 }
 
