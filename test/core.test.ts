@@ -178,16 +178,76 @@ describe('project and file services', () => {
     await expect(files.replaceText('main.tex', 'aa', 'aa', 'same text')).rejects.toThrow('differ');
     expect(transport.updateFile).toHaveBeenCalledTimes(1);
 
-    await expect(files.replaceText('main.tex', 'missing', 'new', 'missing text')).rejects.toThrow('not found');
+    await expect(files.replaceText('main.tex', 'missing', 'new', 'missing text')).rejects.toThrow(
+      'oldText was not found',
+    );
     await expect(files.readFile('main.tex')).resolves.toBe('aa');
 
     await transport.writeFile('main.tex', 'repeat repeat', 'reset');
-    await expect(files.replaceText('main.tex', 'repeat', 'new', 'duplicate text')).rejects.toThrow('not unique');
+    await expect(files.replaceText('main.tex', 'repeat', 'new', 'duplicate text')).rejects.toThrow(
+      'oldText is not unique; provide longer context',
+    );
     await expect(files.readFile('main.tex')).resolves.toBe('repeat repeat');
 
     await transport.writeFile('main.tex', 'aaa', 'reset overlap');
-    await expect(files.replaceText('main.tex', 'aa', 'new', 'overlapping text')).rejects.toThrow('not unique');
+    await expect(files.replaceText('main.tex', 'aa', 'new', 'overlapping text', undefined, false)).rejects.toThrow(
+      'oldText is not unique; provide longer context',
+    );
     await expect(files.readFile('main.tex')).resolves.toBe('aaa');
+    expect(transport.updateFile).toHaveBeenCalledTimes(4);
+  });
+
+  it('replaces every non-overlapping literal match when replaceAll is true', async () => {
+    const transport = fakeTransport({
+      'single.txt': 'before needle after',
+      'multiple.txt': 'needle and needle',
+      'delete.txt': 'x-x-x',
+      'multiline.txt': 'before\nold\ntext middle\nold\ntext after',
+      'recursive.txt': 'old old',
+      'overlap.txt': 'aaa',
+      'missing.txt': 'unchanged',
+    });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+        },
+      },
+      { transportFactory: () => transport },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.replaceText('single.txt', 'needle', 'new', 'single', undefined, true)).resolves.toBe(
+      'file updated',
+    );
+    await expect(files.readFile('single.txt')).resolves.toBe('before new after');
+    expect(transport.updateFile).toHaveBeenCalledTimes(1);
+
+    await files.replaceText('multiple.txt', 'needle', 'new', 'multiple', undefined, true);
+    await expect(files.readFile('multiple.txt')).resolves.toBe('new and new');
+    expect(transport.updateFile).toHaveBeenCalledTimes(2);
+
+    await files.replaceText('delete.txt', 'x', '', 'delete', undefined, true);
+    await expect(files.readFile('delete.txt')).resolves.toBe('--');
+    expect(transport.updateFile).toHaveBeenCalledTimes(3);
+
+    await files.replaceText('multiline.txt', 'old\ntext', 'updated', 'multiline', undefined, true);
+    await expect(files.readFile('multiline.txt')).resolves.toBe('before\nupdated middle\nupdated after');
+    expect(transport.updateFile).toHaveBeenCalledTimes(4);
+
+    await files.replaceText('recursive.txt', 'old', 'old $& $1', 'literal non-recursive', undefined, true);
+    await expect(files.readFile('recursive.txt')).resolves.toBe('old $& $1 old $& $1');
+    expect(transport.updateFile).toHaveBeenCalledTimes(5);
+
+    await files.replaceText('overlap.txt', 'aa', 'b', 'overlap', undefined, true);
+    await expect(files.readFile('overlap.txt')).resolves.toBe('ba');
+    expect(transport.updateFile).toHaveBeenCalledTimes(6);
+
+    await expect(files.replaceText('missing.txt', 'needle', 'new', 'missing', undefined, true)).rejects.toThrow(
+      'oldText was not found',
+    );
+    await expect(files.readFile('missing.txt')).resolves.toBe('unchanged');
+    expect(transport.updateFile).toHaveBeenCalledTimes(7);
   });
 
   it('searches the selected project with defaults and explicit options', async () => {

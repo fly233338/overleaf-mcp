@@ -122,7 +122,50 @@ describe('MCP tool registry', () => {
       '',
       'delete old text',
       'second',
+      undefined,
     );
+
+    await registry.handlers.replace_text({
+      filePath: 'chapters/one.tex',
+      oldText: 'old text',
+      newText: 'new text',
+      replaceAll: false,
+      commitMessage: 'replace one',
+    });
+    expect(services.fileService.replaceText).toHaveBeenLastCalledWith(
+      'chapters/one.tex',
+      'old text',
+      'new text',
+      'replace one',
+      undefined,
+      false,
+    );
+
+    await registry.handlers.replace_text({
+      filePath: 'chapters/one.tex',
+      oldText: 'old text',
+      newText: 'new text',
+      replaceAll: true,
+      commitMessage: 'replace all',
+    });
+    expect(services.fileService.replaceText).toHaveBeenLastCalledWith(
+      'chapters/one.tex',
+      'old text',
+      'new text',
+      'replace all',
+      undefined,
+      true,
+    );
+
+    await expect(
+      registry.handlers.replace_text({
+        filePath: 'chapters/one.tex',
+        oldText: 'old text',
+        newText: 'new text',
+        replaceAll: 'true',
+        commitMessage: 'invalid boolean',
+      }),
+    ).rejects.toThrow('Expected a boolean tool argument');
 
     expectTextResult(
       await registry.handlers.write_file({
@@ -218,6 +261,23 @@ describe('MCP server boundary', () => {
     });
     expect(duplicateReplacement.isError).toBe(true);
     expect((duplicateReplacement.content[0] as { text: string }).text).toContain('not unique');
+
+    for (const replaceAll of ['true', 1]) {
+      const invalidReplaceAll = await client.callTool({
+        name: 'replace_text',
+        arguments: {
+          filePath: 'main.tex',
+          oldText: 'old',
+          newText: 'new',
+          replaceAll,
+          commitMessage: 'replace text',
+        },
+      });
+      expect(invalidReplaceAll.isError).toBe(true);
+      expect((invalidReplaceAll.content[0] as { text: string }).text).toBe(
+        'Error: Expected a boolean tool argument',
+      );
+    }
 
     const failed = await client.callTool({ name: 'read_file', arguments: { filePath: 'main.tex' } });
     expect(failed.isError).toBe(true);

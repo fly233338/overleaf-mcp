@@ -1,12 +1,12 @@
 import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
 
 import type { FileService } from '../core/files.js';
-import { optionalString, requiredString } from './files.js';
+import { optionalBoolean, optionalString, requiredString } from './files.js';
 
 export const replaceTextTool: Tool = {
   name: 'replace_text',
   description:
-    'Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.',
+    'Replace case-sensitive literal text in a file and push to Overleaf. By default oldText must occur exactly once; set replaceAll to replace every non-overlapping match.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -16,11 +16,18 @@ export const replaceTextTool: Tool = {
       },
       oldText: {
         type: 'string',
-        description: 'Non-empty case-sensitive literal text that must occur exactly once',
+        description:
+          'Non-empty case-sensitive literal text; must occur exactly once by default, or at least once when replaceAll is true',
       },
       newText: {
         type: 'string',
-        description: 'Replacement text (may be empty to delete the match)',
+        description:
+          'Literal replacement text (may be empty to delete matches; sequences such as $& and $1 have no special meaning)',
+      },
+      replaceAll: {
+        type: 'boolean',
+        default: false,
+        description: 'Replace every non-overlapping match (optional, defaults to false)',
       },
       commitMessage: {
         type: 'string',
@@ -104,6 +111,7 @@ export async function handleReplaceText(
     requiredString(args.newText),
     requiredString(args.commitMessage),
     optionalString(args.projectName),
+    optionalBoolean(args.replaceAll),
   );
   return textResult(result || 'Text replaced and pushed successfully.');
 }
