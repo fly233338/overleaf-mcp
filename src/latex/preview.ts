@@ -20,7 +20,6 @@ interface InternalHeading extends PreviewHeadingItem {
 
 interface InternalItem {
   offset: number;
-  sequence: number;
   item: PreviewItem;
 }
 
@@ -50,20 +49,19 @@ export function previewLatexFile(content: string): LatexFilePreview {
   const masked = maskComments(content);
   const headings = parseHeadings(content, masked, lineStarts, lineCount);
   const internalItems: InternalItem[] = [];
-  let sequence = 0;
 
   for (const heading of headings) {
     const { offset, level: _level, ...item } = heading;
-    internalItems.push({ offset, sequence: sequence++, item });
+    internalItems.push({ offset, item });
   }
   for (const reference of parseReferences(content, masked, lineStarts)) {
-    internalItems.push({ offset: reference.offset, sequence: sequence++, item: reference.item });
+    internalItems.push({ offset: reference.offset, item: reference.item });
   }
   for (const float of parseFloats(content, masked, lineStarts)) {
-    internalItems.push({ offset: float.offset, sequence: sequence++, item: float.item });
+    internalItems.push({ offset: float.offset, item: float.item });
   }
 
-  internalItems.sort((left, right) => left.offset - right.offset || left.sequence - right.sequence);
+  internalItems.sort((left, right) => left.offset - right.offset);
   return {
     lineCount,
     items: internalItems.map(({ item }) => item),
@@ -129,6 +127,9 @@ function parseHeadings(
   let match: RegExpExecArray | null;
 
   while ((match = matcher.exec(masked)) !== null) {
+    if (!isCommandStart(masked, match.index)) {
+      continue;
+    }
     const type = match[1] as SectionType;
     const argument = parseCommandArgument(masked, matcher.lastIndex, true, true);
     if (!argument) {
@@ -164,6 +165,9 @@ function parseReferences(
   let match: RegExpExecArray | null;
 
   while ((match = matcher.exec(masked)) !== null) {
+    if (!isCommandStart(masked, match.index)) {
+      continue;
+    }
     const argument = parseCommandArgument(masked, matcher.lastIndex, false, false);
     if (!argument) {
       continue;
@@ -192,6 +196,9 @@ function parseFloats(
   let match: RegExpExecArray | null;
 
   while ((match = matcher.exec(masked)) !== null) {
+    if (!isCommandStart(masked, match.index)) {
+      continue;
+    }
     const argument = parseCommandArgument(masked, matcher.lastIndex, false, false);
     if (!argument) {
       continue;
@@ -207,15 +214,11 @@ function parseFloats(
       continue;
     }
 
-    let startIndex = starts.length - 1;
-    while (startIndex >= 0 && starts[startIndex].name !== name) {
-      startIndex -= 1;
-    }
-    if (startIndex === -1) {
+    const start = starts[starts.length - 1];
+    if (!start || start.name !== name) {
       continue;
     }
-    const start = starts[startIndex];
-    starts.splice(startIndex, 1);
+    starts.pop();
     const caption = findFirstCommandArgument(content, masked, start.contentStart, match.index, 'caption', true);
     const label = findFirstCommandArgument(content, masked, start.contentStart, match.index, 'label', false);
     const item: PreviewFloatItem = {
@@ -248,6 +251,9 @@ function findFirstCommandArgument(
   let match: RegExpExecArray | null;
 
   while ((match = matcher.exec(masked)) !== null && match.index < end) {
+    if (!isCommandStart(masked, match.index)) {
+      continue;
+    }
     const argument = parseCommandArgument(masked, matcher.lastIndex, false, allowOptional);
     if (argument && argument.end <= end) {
       return content.slice(argument.contentStart, argument.contentEnd).trim();
@@ -325,6 +331,14 @@ function lineForOffset(lineStarts: number[], offset: number): number {
     }
   }
   return low;
+}
+
+function isCommandStart(content: string, offset: number): boolean {
+  let precedingBackslashes = 0;
+  for (let index = offset - 1; index >= 0 && content[index] === '\\'; index -= 1) {
+    precedingBackslashes += 1;
+  }
+  return precedingBackslashes % 2 === 0;
 }
 
 function isSupportedEnvironment(value: string): value is SupportedEnvironment {

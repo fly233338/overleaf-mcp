@@ -95,6 +95,38 @@ literal \% \input{ kept } % \include{ignored}
     });
   });
 
+  it('ignores pseudo commands after paired slashes and accepts a command after three slashes', () => {
+    const content = String.raw`\\section{Ignored}
+\\input{ignored}
+\\begin{figure}
+\begin{figure}
+\\caption{Ignored}
+\caption{Valid}
+\end{figure}
+\\\section{Real}`;
+
+    expect(previewLatexFile(content)).toEqual({
+      lineCount: 8,
+      items: [
+        { type: 'figure', startLine: 4, endLine: 7, caption: 'Valid' },
+        { type: 'section', title: 'Real', startLine: 8, endLine: 8 },
+      ],
+    });
+  });
+
+  it('only closes the float environment at the top of the stack', () => {
+    const content = String.raw`\begin{figure}
+\begin{table}
+\caption{Nested}
+\end{figure}
+\end{table}`;
+
+    expect(previewLatexFile(content)).toEqual({
+      lineCount: 5,
+      items: [{ type: 'table', startLine: 2, endLine: 5, caption: 'Nested' }],
+    });
+  });
+
   it('skips malformed candidates while keeping later valid items', () => {
     const content = String.raw`\section{Broken
 \input{missing
