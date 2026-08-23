@@ -1,5 +1,3 @@
-### docs/ARCHITECTURE.md
-
 # 架构说明
 
 ## 项目定位
