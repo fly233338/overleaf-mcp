@@ -83,6 +83,20 @@ describe('MCP tool registry', () => {
     expect(services.fileService.readFile).toHaveBeenCalledWith('chapters/one.tex', 'second');
 
     expectTextResult(
+      await registry.handlers.read_file({
+        filePath: 'chapters/one.tex',
+        projectName: 'second',
+        startLine: 2,
+        endLine: 3,
+      }),
+      'content',
+    );
+    expect(services.fileService.readFile).toHaveBeenLastCalledWith('chapters/one.tex', 'second', 2, 3);
+    await expect(
+      registry.handlers.read_file({ filePath: 'chapters/one.tex', startLine: 1.5 }),
+    ).rejects.toThrow('integer');
+
+    expectTextResult(
       await registry.handlers.get_sections({ filePath: 'chapters/one.tex', projectName: 'second' }),
       '[]',
     );
@@ -163,6 +177,13 @@ describe('MCP server boundary', () => {
     const unknown = await client.callTool({ name: 'unknown_tool', arguments: {} });
     expect(unknown.isError).toBe(true);
     expect((unknown.content[0] as { text: string }).text).toBe('Error: Unknown tool: unknown_tool');
+
+    const invalidRange = await client.callTool({
+      name: 'read_file',
+      arguments: { filePath: 'main.tex', startLine: '2' },
+    });
+    expect(invalidRange.isError).toBe(true);
+    expect((invalidRange.content[0] as { text: string }).text).toBe('Error: Expected an integer tool argument');
 
     await client.close();
     await server.close();

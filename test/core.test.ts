@@ -152,4 +152,31 @@ describe('project and file services', () => {
     await expect(files.searchText('query', undefined, '.tex', false, 0)).rejects.toThrow('positive integer');
     await expect(files.searchText('query', undefined, '.tex', false, 1.5)).rejects.toThrow('positive integer');
   });
+
+  it('reads complete files unchanged and selects inclusive line ranges', async () => {
+    const content = 'one\r\ntwo\rthree\nfour';
+    const transport = fakeTransport({ 'notes.txt': content });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+        },
+      },
+      { transportFactory: () => transport },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.readFile('notes.txt')).resolves.toBe(content);
+    await expect(files.readFile('notes.txt', undefined, 2, 3)).resolves.toBe('two\nthree');
+    await expect(files.readFile('notes.txt', undefined, 2)).resolves.toBe('two\nthree\nfour');
+    await expect(files.readFile('notes.txt', undefined, undefined, 2)).resolves.toBe('one\ntwo');
+    await expect(files.readFile('notes.txt', undefined, 3, 99)).resolves.toBe('three\nfour');
+
+    await expect(files.readFile('notes.txt', undefined, 0, 2)).rejects.toThrow('startLine');
+    await expect(files.readFile('notes.txt', undefined, 1.5, 2)).rejects.toThrow('startLine');
+    await expect(files.readFile('notes.txt', undefined, 1, 0)).rejects.toThrow('endLine');
+    await expect(files.readFile('notes.txt', undefined, 1, 2.5)).rejects.toThrow('endLine');
+    await expect(files.readFile('notes.txt', undefined, 3, 2)).rejects.toThrow('greater than');
+    await expect(files.readFile('notes.txt', undefined, 5)).rejects.toThrow('beyond');
+  });
 });

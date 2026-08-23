@@ -64,6 +64,11 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "description": "Read a file from an Overleaf project",
     "inputSchema": {
       "properties": {
+        "endLine": {
+          "description": "Last 1-based line to read (optional)",
+          "minimum": 1,
+          "type": "integer",
+        },
         "filePath": {
           "description": "Path to the file",
           "type": "string",
@@ -71,6 +76,11 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
         "projectName": {
           "description": "Project identifier (optional)",
           "type": "string",
+        },
+        "startLine": {
+          "description": "First 1-based line to read (optional)",
+          "minimum": 1,
+          "type": "integer",
         },
       },
       "required": [

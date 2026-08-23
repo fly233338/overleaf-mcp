@@ -36,8 +36,26 @@ export class FileService {
     return this.projects.getProject(projectName).transport.searchText(query, extension, caseSensitive, maxResults);
   }
 
-  async readFile(filePath: string, projectName?: string): Promise<string> {
-    return this.projects.getProject(projectName).transport.readFile(filePath);
+  async readFile(filePath: string, projectName?: string, startLine?: number, endLine?: number): Promise<string> {
+    const content = await this.projects.getProject(projectName).transport.readFile(filePath);
+    if (startLine === undefined && endLine === undefined) {
+      return content;
+    }
+
+    assertPositiveInteger(startLine, 'startLine');
+    assertPositiveInteger(endLine, 'endLine');
+
+    const lines = content.split(/\r\n|\n|\r/);
+    const firstLine = startLine ?? 1;
+    const lastLine = endLine ?? lines.length;
+    if (firstLine > lines.length) {
+      throw new Error('startLine is beyond the end of the file');
+    }
+    if (firstLine > lastLine) {
+      throw new Error('startLine must not be greater than endLine');
+    }
+
+    return lines.slice(firstLine - 1, Math.min(lastLine, lines.length)).join('\n');
   }
 
   async getSections(filePath: string, projectName?: string): Promise<Section[]> {
@@ -78,5 +96,11 @@ export class FileService {
     return transport.updateFile(filePath, commitMessage, (content) =>
       replaceSection(content, sectionTitle, newContent),
     );
+  }
+}
+
+function assertPositiveInteger(value: number | undefined, name: string): void {
+  if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
+    throw new Error(`${name} must be a positive integer`);
   }
 }

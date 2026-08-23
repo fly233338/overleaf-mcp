@@ -66,6 +66,16 @@ export const readFileTool: Tool = {
         type: 'string',
         description: 'Project identifier (optional)',
       },
+      startLine: {
+        type: 'integer',
+        minimum: 1,
+        description: 'First 1-based line to read (optional)',
+      },
+      endLine: {
+        type: 'integer',
+        minimum: 1,
+        description: 'Last 1-based line to read (optional)',
+      },
     },
     required: ['filePath'],
   },
@@ -112,7 +122,14 @@ export async function handleReadFile(
   fileService: FileService,
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
-  const content = await fileService.readFile(requiredString(args.filePath), optionalString(args.projectName));
+  const filePath = requiredString(args.filePath);
+  const projectName = optionalString(args.projectName);
+  const startLine = optionalInteger(args.startLine);
+  const endLine = optionalInteger(args.endLine);
+  const content =
+    startLine === undefined && endLine === undefined
+      ? await fileService.readFile(filePath, projectName)
+      : await fileService.readFile(filePath, projectName, startLine, endLine);
   return textResult(content);
 }
 
