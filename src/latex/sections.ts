@@ -48,17 +48,6 @@ export function parseSections(content: string): Section[] {
   return sections;
 }
 
-export function getSectionContent(content: string, sectionTitle: string): string {
-  const sections = parseSections(content);
-  const target = sections.find((section) => section.title === sectionTitle);
-  if (!target) {
-    throw new Error(`Section "${sectionTitle}" not found`);
-  }
-
-  const next = sections.find((section) => section.index > target.index);
-  return content.slice(target.index, next?.index ?? content.length);
-}
-
 export function replaceSection(content: string, sectionTitle: string, newContent: string): string {
   const sections = parseSections(content);
   const target = sections.find((section) => section.title === sectionTitle);

@@ -22,16 +22,15 @@
 
 ## MCP Tools
 
-当前支持 9 个 tools：
+当前支持 8 个 tools：
 
 | Tool | 状态 |
 |---|---|
 | `list_projects` | 已支持 |
 | `list_files` | 已支持 |
+| `preview_file` | 已支持 |
 | `search_text` | 已支持 |
 | `read_file` | 已支持 |
-| `get_sections` | 已支持 |
-| `get_section_content` | 已支持 |
 | `replace_text` | 已支持 |
 | `write_file` | 已支持 |
 | `write_section` | 已支持 |
@@ -41,6 +40,8 @@
 未指定 `projectName` 时使用默认项目。
 
 `list_files` 默认过滤 `.tex` 文件；精确传入小写 `"all"` 时列出除 `.git` 目录外的全部普通文件。
+
+`preview_file` 读取单个 LaTeX 文件并返回标题范围、`input/include` 引用以及 `figure/table` 的结构化 JSON；所有行号均为 1-based 且范围包含边界。
 
 `read_file` 未提供范围参数时读取完整原文；可选的 `startLine` 和 `endLine` 使用 1-based、包含边界的行范围。
 
@@ -55,6 +56,7 @@
 - 项目文件遍历
 - 项目内纯文本搜索（返回文件路径、行号和匹配行）
 - 文本文件读取
+- LaTeX 文件结构化预览
 - 唯一匹配的安全文本替换
 - 完整文件写入
 - 用户路径限制在仓库根目录内
@@ -65,12 +67,10 @@
 
 当前支持：
 
-- LaTeX 章节解析
-- 章节列表
-- 按标题读取章节
+- 标题、外部文件引用和 figure/table 预览
 - 按标题替换章节
 
-章节逻辑位于独立的纯函数模块中。
+预览和章节写入逻辑位于各自独立的纯函数模块中。
 
 ## Git 能力
 

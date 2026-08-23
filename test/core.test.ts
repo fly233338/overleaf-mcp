@@ -52,9 +52,6 @@ describe('project and file services', () => {
     ]);
     expect(projects.getProject().transport).toBe(projects.getProject('default').transport);
     expect(factory).toHaveBeenCalledTimes(1);
-    await expect(files.getSections('main.tex')).resolves.toEqual([
-      { type: 'section', title: 'Intro', index: 0 },
-    ]);
     expect(() => projects.getProject('missing')).toThrow('Project "missing" not found');
   });
 

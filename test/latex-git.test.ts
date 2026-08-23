@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { getSectionContent, parseSections, replaceSection } from '../src/latex/sections.js';
+import { parseSections, replaceSection } from '../src/latex/sections.js';
 import { GitTransport, type GitCommandRunner } from '../src/transports/git/git-transport.js';
 
 describe('LaTeX section functions', () => {
@@ -24,14 +24,6 @@ Next body.
       { type: 'subsection', title: 'Details', index: 93 },
       { type: 'section', title: 'Next', index: 124 },
     ]);
-  });
-
-  it('reads a section through the next section command', () => {
-    expect(getSectionContent(document, 'Use of \\emph{nested} braces')).toBe(
-      String.raw`\section[Short]{Use of \emph{nested} braces}
-Intro.
-`,
-    );
   });
 
   it('replaces a section and its nested subsections but preserves the next peer', () => {
@@ -67,7 +59,6 @@ Final body.
   });
 
   it('reports when a requested section does not exist', () => {
-    expect(() => getSectionContent(document, 'Missing')).toThrow('Section "Missing" not found');
     expect(() => replaceSection(document, 'Missing', 'replacement')).toThrow('Section "Missing" not found');
   });
 });

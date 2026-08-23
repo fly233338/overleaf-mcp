@@ -1,6 +1,6 @@
-import { getSectionContent, parseSections, replaceSection } from '../latex/sections.js';
+import { replaceSection } from '../latex/sections.js';
 import { previewLatexFile } from '../latex/preview.js';
-import type { FilePreview, Section, TextMatch } from '../types.js';
+import type { FilePreview, TextMatch } from '../types.js';
 import { ProjectService } from './project.js';
 
 export class FileService {
@@ -53,16 +53,6 @@ export class FileService {
     }
 
     return lines.slice(firstLine - 1, Math.min(lastLine, lines.length)).join('\n');
-  }
-
-  async getSections(filePath: string, projectName?: string): Promise<Section[]> {
-    const content = await this.readFile(filePath, projectName);
-    return parseSections(content);
-  }
-
-  async getSectionContent(filePath: string, sectionTitle: string, projectName?: string): Promise<string> {
-    const content = await this.readFile(filePath, projectName);
-    return getSectionContent(content, sectionTitle);
   }
 
   async previewFile(filePath: string, projectName?: string): Promise<FilePreview> {

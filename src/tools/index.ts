@@ -16,7 +16,6 @@ import {
   writeFileTool,
   writeSectionTool,
 } from './edit.js';
-import { handleGetSectionContent, handleGetSections, getSectionContentTool, getSectionsTool } from './sections.js';
 import { handlePreviewFile, previewFileTool } from './preview.js';
 import { handleListProjects, listProjectsTool } from './projects.js';
 import type { FileService } from '../core/files.js';
@@ -41,8 +40,6 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     previewFileTool,
     searchTextTool,
     readFileTool,
-    getSectionsTool,
-    getSectionContentTool,
     replaceTextTool,
     writeFileTool,
     writeSectionTool,
@@ -54,8 +51,6 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     preview_file: (args) => handlePreviewFile(services.fileService, args),
     search_text: (args) => handleSearchText(services.fileService, args),
     read_file: (args) => handleReadFile(services.fileService, args),
-    get_sections: (args) => handleGetSections(services.fileService, args),
-    get_section_content: (args) => handleGetSectionContent(services.fileService, args),
     replace_text: (args) => handleReplaceText(services.fileService, args),
     write_file: (args) => handleWriteFile(services.fileService, args),
     write_section: (args) => handleWriteSection(services.fileService, args),

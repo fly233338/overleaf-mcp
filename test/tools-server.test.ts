@@ -20,8 +20,6 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
     })),
     searchText: vi.fn(async () => []),
     readFile: vi.fn(async () => 'content'),
-    getSections: vi.fn(async () => []),
-    getSectionContent: vi.fn(async () => 'section'),
     replaceText: vi.fn(async () => ''),
     writeFile: vi.fn(async () => ''),
     writeSection: vi.fn(async () => ''),
@@ -44,8 +42,6 @@ describe('MCP tool registry', () => {
       'preview_file',
       'search_text',
       'read_file',
-      'get_sections',
-      'get_section_content',
       'replace_text',
       'write_file',
       'write_section',
@@ -109,22 +105,6 @@ describe('MCP tool registry', () => {
     await expect(
       registry.handlers.read_file({ filePath: 'chapters/one.tex', startLine: 1.5 }),
     ).rejects.toThrow('integer');
-
-    expectTextResult(
-      await registry.handlers.get_sections({ filePath: 'chapters/one.tex', projectName: 'second' }),
-      '[]',
-    );
-    expect(services.fileService.getSections).toHaveBeenCalledWith('chapters/one.tex', 'second');
-
-    expectTextResult(
-      await registry.handlers.get_section_content({
-        filePath: 'chapters/one.tex',
-        sectionTitle: 'Intro',
-        projectName: 'second',
-      }),
-      'section',
-    );
-    expect(services.fileService.getSectionContent).toHaveBeenCalledWith('chapters/one.tex', 'Intro', 'second');
 
     expectTextResult(
       await registry.handlers.replace_text({
@@ -201,7 +181,13 @@ describe('MCP server boundary', () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(10);
+    expect(listed.tools).toHaveLength(8);
+
+    for (const removedTool of ['get_sections', 'get_section_content']) {
+      const removed = await client.callTool({ name: removedTool, arguments: {} });
+      expect(removed.isError).toBe(true);
+      expect((removed.content[0] as { text: string }).text).toBe(`Error: Unknown tool: ${removedTool}`);
+    }
 
     const removedSummary = await client.callTool({ name: 'status_summary', arguments: {} });
     expect(removedSummary.isError).toBe(true);

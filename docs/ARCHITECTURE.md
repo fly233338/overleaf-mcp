@@ -20,12 +20,13 @@ src/
 │   ├── project.ts
 │   └── files.ts
 ├── latex/
+│   ├── preview.ts
 │   └── sections.ts
 ├── tools/
 │   ├── index.ts
 │   ├── projects.ts
 │   ├── files.ts
-│   ├── sections.ts
+│   ├── preview.ts
 │   └── edit.ts
 ├── transports/
 │   └── git/
@@ -79,13 +80,13 @@ src/
 
 `ProjectTransport` 是 core 使用的最小 transport 接口，也是测试 fake transport 的边界。
 
-`FileService` 协调项目、Git transport 和 LaTeX parser，提供文件和章节相关操作。`listFiles()` 将公开参数中精确小写的 `"all"` 映射为空扩展过滤器；`replaceText()` 在 pull 后的最新内容中执行大小写敏感的唯一字面量替换；`writeSection()` 在 core 中完成 LaTeX replacement。两种局部写入都将 updater 交给 transport。
+`FileService` 协调项目、Git transport 和 LaTeX parser，提供文件和章节相关操作。`listFiles()` 将公开参数中精确小写的 `"all"` 映射为空扩展过滤器；`previewFile()` 通过现有安全读取获取一个完整文件并调用纯预览 parser，补充原始文件路径；`replaceText()` 在 pull 后的最新内容中执行大小写敏感的唯一字面量替换；`writeSection()` 在 core 中完成 LaTeX replacement。两种局部写入都将 updater 交给 transport。
 
 core 不依赖 MCP server 或 tools。
 
 ### `latex/`
 
-负责 LaTeX 章节解析、读取和替换。
+`preview.ts` 负责从单个 LaTeX 文件提取标题范围、外部文件引用和 figure/table，返回扁平的结构化预览。`sections.ts` 保留写入所需的章节解析和替换。
 
 保持纯函数，不访问文件系统、Git、配置或 MCP。
 
@@ -97,7 +98,7 @@ tool 只调用 core service，不直接执行 Git、读取配置、访问文件�
 
 所有 tools 在 `tools/index.ts` 中显式注册，不使用动态扫描或插件机制。
 
-`tools/files.ts` 定义文件浏览、搜索和读取 tools，包括支持 `extension: "all"` 的 `list_files`；`tools/edit.ts` 定义写入 tools，包括只允许唯一字面量匹配的 `replace_text`。当前 registry 显式注册 9 个 tools。
+`tools/files.ts` 定义文件浏览、搜索和读取 tools，包括支持 `extension: "all"` 的 `list_files`；`tools/preview.ts` 定义 `preview_file` 并将 service 结果序列化为 JSON；`tools/edit.ts` 定义写入 tools，包括只允许唯一字面量匹配的 `replace_text`。当前 registry 显式注册 8 个 tools。
 
 ### `server.ts`
 

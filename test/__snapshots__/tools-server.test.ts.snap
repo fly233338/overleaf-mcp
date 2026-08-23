@@ -111,51 +111,6 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "read_file",
   },
   {
-    "description": "Get all sections from a LaTeX file",
-    "inputSchema": {
-      "properties": {
-        "filePath": {
-          "description": "Path to the LaTeX file",
-          "type": "string",
-        },
-        "projectName": {
-          "description": "Project identifier (optional)",
-          "type": "string",
-        },
-      },
-      "required": [
-        "filePath",
-      ],
-      "type": "object",
-    },
-    "name": "get_sections",
-  },
-  {
-    "description": "Get content of a specific section",
-    "inputSchema": {
-      "properties": {
-        "filePath": {
-          "description": "Path to the LaTeX file",
-          "type": "string",
-        },
-        "projectName": {
-          "description": "Project identifier (optional)",
-          "type": "string",
-        },
-        "sectionTitle": {
-          "description": "Title of the section",
-          "type": "string",
-        },
-      },
-      "required": [
-        "filePath",
-        "sectionTitle",
-      ],
-      "type": "object",
-    },
-    "name": "get_section_content",
-  },
-  {
     "description": "Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.",
     "inputSchema": {
       "properties": {
