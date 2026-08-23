@@ -82,20 +82,6 @@ export const readFileTool: Tool = {
   },
 };
 
-export const statusSummaryTool: Tool = {
-  name: 'status_summary',
-  description: 'Get a comprehensive project status summary',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      projectName: {
-        type: 'string',
-        description: 'Project identifier (optional)',
-      },
-    },
-  },
-};
-
 export async function handleListFiles(
   fileService: FileService,
   args: Record<string, unknown>,
@@ -130,14 +116,6 @@ export async function handleReadFile(
     optionalInteger(args.endLine),
   );
   return textResult(content);
-}
-
-export async function handleStatusSummary(
-  fileService: FileService,
-  args: Record<string, unknown>,
-): Promise<CallToolResult> {
-  const summary = await fileService.statusSummary(optionalString(args.projectName));
-  return textResult(JSON.stringify(summary, null, 2));
 }
 
 export function optionalString(value: unknown): string | undefined {

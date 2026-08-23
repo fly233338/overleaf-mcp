@@ -22,12 +22,11 @@
 
 ## MCP Tools
 
-当前支持 10 个 tools：
+当前支持 9 个 tools：
 
 | Tool | 状态 |
 |---|---|
 | `list_projects` | 已支持 |
-| `status_summary` | 已支持 |
 | `list_files` | 已支持 |
 | `search_text` | 已支持 |
 | `read_file` | 已支持 |
@@ -58,7 +57,6 @@
 - 文本文件读取
 - 唯一匹配的安全文本替换
 - 完整文件写入
-- 项目摘要
 - 用户路径限制在仓库根目录内
 
 文件操作通过 Git transport 的本地仓库完成。

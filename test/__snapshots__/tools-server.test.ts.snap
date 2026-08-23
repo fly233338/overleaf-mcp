@@ -136,19 +136,6 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "get_section_content",
   },
   {
-    "description": "Get a comprehensive project status summary",
-    "inputSchema": {
-      "properties": {
-        "projectName": {
-          "description": "Project identifier (optional)",
-          "type": "string",
-        },
-      },
-      "type": "object",
-    },
-    "name": "status_summary",
-  },
-  {
     "description": "Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.",
     "inputSchema": {
       "properties": {
