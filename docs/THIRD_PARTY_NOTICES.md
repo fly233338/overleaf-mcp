@@ -1,6 +1,15 @@
+# Third-Party Notices
+
+## OverleafMCP
+
+Parts of the design of this project were informed by the architecture and implementation ideas of [OverleafMCP](https://github.com/mjyoo2/OverleafMCP), originally created by Minjong Yoo.
+
+OverleafMCP is made available under the following license:
+
+```text
 MIT License
 
-Copyright (c) 2026 fly233338
+Copyright (c) 2025 Minjong Yoo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +28,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
