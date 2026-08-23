@@ -45,7 +45,7 @@
 
 `read_file` 未提供范围参数时读取完整原文；可选的 `startLine` 和 `endLine` 使用 1-based、包含边界的行范围。
 
-`replace_text` 只执行大小写敏感的字面量替换；`oldText` 必须非空。默认模式要求它在 pull 后的最新文件内容中恰好出现一次；显式传入 `replaceAll: true` 时替换全文所有从左到右、非重叠匹配。`newText` 可为空以删除匹配。
+`replace_text` 只执行大小写敏感的字面量替换；`oldText` 必须非空。默认模式要求它在 pull 后的最新文件内容中恰好出现一次；显式传入 `replaceAll: true` 时替换全文所有从左到右、非重叠匹配。`newText` 可为空以删除匹配，并始终按字面量插入，`$&`、`$1` 等序列没有特殊含义；替换过程不会重新扫描新生成的内容。
 
 所有写操作必须提供明确的 `commitMessage`。
 

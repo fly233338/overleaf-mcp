@@ -123,11 +123,11 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "newText": {
-          "description": "Replacement text (may be empty to delete the match)",
+          "description": "Literal replacement text (may be empty to delete matches; sequences such as $& and $1 have no special meaning)",
           "type": "string",
         },
         "oldText": {
-          "description": "Non-empty case-sensitive literal text that must occur exactly once",
+          "description": "Non-empty case-sensitive literal text; must occur exactly once by default, or at least once when replaceAll is true",
           "type": "string",
         },
         "projectName": {

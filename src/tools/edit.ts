@@ -16,11 +16,13 @@ export const replaceTextTool: Tool = {
       },
       oldText: {
         type: 'string',
-        description: 'Non-empty case-sensitive literal text that must occur exactly once',
+        description:
+          'Non-empty case-sensitive literal text; must occur exactly once by default, or at least once when replaceAll is true',
       },
       newText: {
         type: 'string',
-        description: 'Replacement text (may be empty to delete the match)',
+        description:
+          'Literal replacement text (may be empty to delete matches; sequences such as $& and $1 have no special meaning)',
       },
       replaceAll: {
         type: 'boolean',

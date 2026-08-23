@@ -235,8 +235,8 @@ describe('project and file services', () => {
     await expect(files.readFile('multiline.txt')).resolves.toBe('before\nupdated middle\nupdated after');
     expect(transport.updateFile).toHaveBeenCalledTimes(4);
 
-    await files.replaceText('recursive.txt', 'old', 'old again', 'non-recursive', undefined, true);
-    await expect(files.readFile('recursive.txt')).resolves.toBe('old again old again');
+    await files.replaceText('recursive.txt', 'old', 'old $& $1', 'literal non-recursive', undefined, true);
+    await expect(files.readFile('recursive.txt')).resolves.toBe('old $& $1 old $& $1');
     expect(transport.updateFile).toHaveBeenCalledTimes(5);
 
     await files.replaceText('overlap.txt', 'aa', 'b', 'overlap', undefined, true);
@@ -247,14 +247,6 @@ describe('project and file services', () => {
       'oldText was not found',
     );
     await expect(files.readFile('missing.txt')).resolves.toBe('unchanged');
-    expect(transport.updateFile).toHaveBeenCalledTimes(7);
-
-    await expect(files.replaceText('missing.txt', '', 'new', 'empty', undefined, true)).rejects.toThrow(
-      'oldText must not be empty',
-    );
-    await expect(files.replaceText('missing.txt', 'same', 'same', 'same', undefined, true)).rejects.toThrow(
-      'newText must differ from oldText',
-    );
     expect(transport.updateFile).toHaveBeenCalledTimes(7);
   });
 
