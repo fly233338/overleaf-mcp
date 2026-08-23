@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { FileService } from '../src/core/files.js';
+import { ProjectService } from '../src/core/project.js';
 import { parseSections, replaceSection } from '../src/latex/sections.js';
 import { GitTransport, type GitCommandRunner } from '../src/transports/git/git-transport.js';
 
@@ -211,6 +213,76 @@ describe('GitTransport', () => {
       ['commit', '-m', 'update chapter'],
       ['push'],
     ]);
+  });
+
+  it('replaces all matches through one fake Git update transaction', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = path.join(root, 'repo');
+    const target = path.join('chapters', 'one.tex');
+    await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await mkdir(path.join(repoPath, 'chapters'), { recursive: true });
+    await writeFile(path.join(repoPath, target), 'old text\nold text');
+
+    const calls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      calls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+        },
+      },
+      { transportFactory: () => transport },
+    );
+
+    await new FileService(projects).replaceText(target, 'old text', 'new text', 'replace all', undefined, true);
+
+    expect(await readFile(path.join(repoPath, target), 'utf8')).toBe('new text\nnew text');
+    expect(calls).toEqual([
+      ['pull'],
+      ['add', '--', target],
+      ['commit', '-m', 'replace all'],
+      ['push'],
+    ]);
+  });
+
+  it('stops a missing replace-all after the fake Git pull and read', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = path.join(root, 'repo');
+    const target = 'main.tex';
+    await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await writeFile(path.join(repoPath, target), 'unchanged');
+
+    const calls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      calls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+        },
+      },
+      { transportFactory: () => transport },
+    );
+
+    await expect(
+      new FileService(projects).replaceText(target, 'missing', 'new', 'replace all', undefined, true),
+    ).rejects.toThrow('oldText was not found');
+
+    expect(await readFile(path.join(repoPath, target), 'utf8')).toBe('unchanged');
+    expect(calls).toEqual([['pull']]);
   });
 
   it('leaves the target unchanged and stops after pull when an updater rejects the content', async () => {

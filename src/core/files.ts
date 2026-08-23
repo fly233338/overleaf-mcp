@@ -66,6 +66,7 @@ export class FileService {
     newText: string,
     commitMessage: string,
     projectName?: string,
+    replaceAll = false,
   ): Promise<string> {
     if (oldText.length === 0) {
       throw new Error('oldText must not be empty');
@@ -78,6 +79,9 @@ export class FileService {
       const matchIndex = content.indexOf(oldText);
       if (matchIndex === -1) {
         throw new Error('oldText was not found');
+      }
+      if (replaceAll) {
+        return content.split(oldText).join(newText);
       }
       if (content.indexOf(oldText, matchIndex + 1) !== -1) {
         throw new Error('oldText is not unique; provide longer context');

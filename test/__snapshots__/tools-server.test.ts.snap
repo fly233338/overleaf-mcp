@@ -111,7 +111,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "read_file",
   },
   {
-    "description": "Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.",
+    "description": "Replace case-sensitive literal text in a file and push to Overleaf. By default oldText must occur exactly once; set replaceAll to replace every non-overlapping match.",
     "inputSchema": {
       "properties": {
         "commitMessage": {
@@ -133,6 +133,11 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
         "projectName": {
           "description": "Project identifier (optional, defaults to "default")",
           "type": "string",
+        },
+        "replaceAll": {
+          "default": false,
+          "description": "Replace every non-overlapping match (optional, defaults to false)",
+          "type": "boolean",
         },
       },
       "required": [

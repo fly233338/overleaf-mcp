@@ -126,7 +126,7 @@ export function requiredString(value: unknown): string {
   return requiredStringValue(value);
 }
 
-function optionalBoolean(value: unknown): boolean | undefined {
+export function optionalBoolean(value: unknown): boolean | undefined {
   if (value === undefined) {
     return undefined;
   }
