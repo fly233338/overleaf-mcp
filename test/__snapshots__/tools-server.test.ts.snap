@@ -28,6 +28,39 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "list_files",
   },
   {
+    "description": "Search project text files and return matching lines",
+    "inputSchema": {
+      "properties": {
+        "caseSensitive": {
+          "description": "Whether matching should be case-sensitive (optional)",
+          "type": "boolean",
+        },
+        "extension": {
+          "description": "File extension filter (optional, defaults to ".tex")",
+          "type": "string",
+        },
+        "maxResults": {
+          "description": "Maximum number of matching lines (optional, defaults to 100)",
+          "minimum": 1,
+          "type": "integer",
+        },
+        "projectName": {
+          "description": "Project identifier (optional)",
+          "type": "string",
+        },
+        "query": {
+          "description": "Literal text to search for",
+          "type": "string",
+        },
+      },
+      "required": [
+        "query",
+      ],
+      "type": "object",
+    },
+    "name": "search_text",
+  },
+  {
     "description": "Read a file from an Overleaf project",
     "inputSchema": {
       "properties": {

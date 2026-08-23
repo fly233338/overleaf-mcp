@@ -8,8 +8,15 @@ export interface ProjectsConfig {
   projects: Record<string, ProjectConfig>;
 }
 
+export interface TextMatch {
+  filePath: string;
+  line: number;
+  text: string;
+}
+
 export interface ProjectTransport {
   listFiles(extension?: string): Promise<string[]>;
+  searchText(query: string, extension: string, caseSensitive: boolean, maxResults: number): Promise<TextMatch[]>;
   readFile(filePath: string): Promise<string>;
   writeFile(filePath: string, content: string, commitMessage: string): Promise<string>;
   updateFile(

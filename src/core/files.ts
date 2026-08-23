@@ -1,5 +1,5 @@
 import { getSectionContent, parseSections, replaceSection } from '../latex/sections.js';
-import type { Section } from '../types.js';
+import type { Section, TextMatch } from '../types.js';
 import { ProjectService } from './project.js';
 
 export interface StatusSummary {
@@ -14,6 +14,26 @@ export class FileService {
 
   async listFiles(projectName?: string, extension = '.tex'): Promise<string[]> {
     return this.projects.getProject(projectName).transport.listFiles(extension);
+  }
+
+  async searchText(
+    query: string,
+    projectName?: string,
+    extension = '.tex',
+    caseSensitive = false,
+    maxResults = 100,
+  ): Promise<TextMatch[]> {
+    if (typeof query !== 'string' || query.length === 0) {
+      throw new Error('query must not be empty');
+    }
+    if (typeof extension !== 'string' || extension.length === 0) {
+      throw new Error('extension must not be empty');
+    }
+    if (!Number.isInteger(maxResults) || maxResults < 1) {
+      throw new Error('maxResults must be a positive integer');
+    }
+
+    return this.projects.getProject(projectName).transport.searchText(query, extension, caseSensitive, maxResults);
   }
 
   async readFile(filePath: string, projectName?: string): Promise<string> {

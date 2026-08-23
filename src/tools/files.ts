@@ -20,6 +20,38 @@ export const listFilesTool: Tool = {
   },
 };
 
+export const searchTextTool: Tool = {
+  name: 'search_text',
+  description: 'Search project text files and return matching lines',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Literal text to search for',
+      },
+      projectName: {
+        type: 'string',
+        description: 'Project identifier (optional)',
+      },
+      extension: {
+        type: 'string',
+        description: 'File extension filter (optional, defaults to ".tex")',
+      },
+      caseSensitive: {
+        type: 'boolean',
+        description: 'Whether matching should be case-sensitive (optional)',
+      },
+      maxResults: {
+        type: 'integer',
+        minimum: 1,
+        description: 'Maximum number of matching lines (optional, defaults to 100)',
+      },
+    },
+    required: ['query'],
+  },
+};
+
 export const readFileTool: Tool = {
   name: 'read_file',
   description: 'Read a file from an Overleaf project',
@@ -62,6 +94,20 @@ export async function handleListFiles(
   return textResult(files.join('\n'));
 }
 
+export async function handleSearchText(
+  fileService: FileService,
+  args: Record<string, unknown>,
+): Promise<CallToolResult> {
+  const matches = await fileService.searchText(
+    requiredString(args.query),
+    optionalString(args.projectName),
+    optionalString(args.extension),
+    optionalBoolean(args.caseSensitive),
+    optionalInteger(args.maxResults),
+  );
+  return textResult(JSON.stringify(matches, null, 2));
+}
+
 export async function handleReadFile(
   fileService: FileService,
   args: Record<string, unknown>,
@@ -84,6 +130,26 @@ export function optionalString(value: unknown): string | undefined {
 
 export function requiredString(value: unknown): string {
   return requiredStringValue(value);
+}
+
+export function optionalBoolean(value: unknown): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'boolean') {
+    throw new Error('Expected a boolean tool argument');
+  }
+  return value;
+}
+
+export function optionalInteger(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new Error('Expected an integer tool argument');
+  }
+  return value;
 }
 
 function requiredStringValue(value: unknown): string {

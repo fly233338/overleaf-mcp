@@ -5,7 +5,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { errorMessage, maskToken } from '../../errors.js';
-import type { ProjectConfig, ProjectTransport } from '../../types.js';
+import type { ProjectConfig, ProjectTransport, TextMatch } from '../../types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -98,6 +98,38 @@ export class GitTransport implements ProjectTransport {
 
   async listFiles(extension = '.tex'): Promise<string[]> {
     await this.ensureRepository();
+    return this.enumerateFiles(extension);
+  }
+
+  async searchText(
+    query: string,
+    extension: string,
+    caseSensitive: boolean,
+    maxResults: number,
+  ): Promise<TextMatch[]> {
+    await this.ensureRepository();
+    const filePaths = await this.enumerateFiles(extension);
+    const results: TextMatch[] = [];
+    const searchQuery = caseSensitive ? query : query.toLowerCase();
+
+    for (const filePath of filePaths) {
+      const content = await readFile(this.resolveSafePath(filePath), 'utf8');
+      const lines = content.split(/\r\n|\n|\r/);
+      for (const [index, text] of lines.entries()) {
+        const searchableText = caseSensitive ? text : text.toLowerCase();
+        if (searchableText.includes(searchQuery)) {
+          results.push({ filePath, line: index + 1, text });
+          if (results.length >= maxResults) {
+            return results;
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  private async enumerateFiles(extension = ''): Promise<string[]> {
     const results: string[] = [];
 
     const walk = async (directory: string): Promise<void> => {

@@ -1,6 +1,15 @@
 import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
 
-import { handleListFiles, handleReadFile, handleStatusSummary, listFilesTool, readFileTool, statusSummaryTool } from './files.js';
+import {
+  handleListFiles,
+  handleReadFile,
+  handleSearchText,
+  handleStatusSummary,
+  listFilesTool,
+  readFileTool,
+  searchTextTool,
+  statusSummaryTool,
+} from './files.js';
 import { handleWriteFile, handleWriteSection, writeFileTool, writeSectionTool } from './edit.js';
 import { handleGetSectionContent, handleGetSections, getSectionContentTool, getSectionsTool } from './sections.js';
 import { handleListProjects, listProjectsTool } from './projects.js';
@@ -23,6 +32,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
   const definitions = [
     listProjectsTool,
     listFilesTool,
+    searchTextTool,
     readFileTool,
     getSectionsTool,
     getSectionContentTool,
@@ -34,6 +44,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
   const handlers: Record<string, ToolHandler> = {
     list_projects: async () => handleListProjects(services.projectService),
     list_files: (args) => handleListFiles(services.fileService, args),
+    search_text: (args) => handleSearchText(services.fileService, args),
     read_file: (args) => handleReadFile(services.fileService, args),
     get_sections: (args) => handleGetSections(services.fileService, args),
     get_section_content: (args) => handleGetSectionContent(services.fileService, args),

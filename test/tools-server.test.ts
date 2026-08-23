@@ -13,6 +13,7 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
   } as unknown as ProjectService;
   const fileService = {
     listFiles: vi.fn(async () => ['main.tex']),
+    searchText: vi.fn(async () => []),
     readFile: vi.fn(async () => 'content'),
     getSections: vi.fn(async () => []),
     getSectionContent: vi.fn(async () => 'section'),
@@ -35,6 +36,7 @@ describe('MCP tool registry', () => {
     expect(registry.definitions.map((tool) => tool.name)).toEqual([
       'list_projects',
       'list_files',
+      'search_text',
       'read_file',
       'get_sections',
       'get_section_content',
@@ -58,6 +60,21 @@ describe('MCP tool registry', () => {
     expect(services.fileService.listFiles).toHaveBeenCalledWith('second', '.md');
     expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: '' }), 'main.tex');
     expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', '.tex');
+
+    services.fileService.searchText.mockResolvedValue([
+      { filePath: 'chapters/one.tex', line: 2, text: 'Needle' },
+    ]);
+    expectTextResult(
+      await registry.handlers.search_text({
+        query: 'needle',
+        projectName: 'second',
+        extension: '.md',
+        caseSensitive: true,
+        maxResults: 5,
+      }),
+      '[\n  {\n    "filePath": "chapters/one.tex",\n    "line": 2,\n    "text": "Needle"\n  }\n]',
+    );
+    expect(services.fileService.searchText).toHaveBeenCalledWith('needle', 'second', '.md', true, 5);
 
     expectTextResult(
       await registry.handlers.read_file({ filePath: 'chapters/one.tex', projectName: 'second' }),
@@ -135,7 +152,7 @@ describe('MCP server boundary', () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(8);
+    expect(listed.tools).toHaveLength(9);
 
     const failed = await client.callTool({ name: 'read_file', arguments: { filePath: 'main.tex' } });
     expect(failed.isError).toBe(true);

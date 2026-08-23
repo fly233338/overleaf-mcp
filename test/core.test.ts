@@ -6,6 +6,7 @@ import type { ProjectTransport } from '../src/types.js';
 
 function fakeTransport(files: Record<string, string> = {}): ProjectTransport & {
   listFiles: ReturnType<typeof vi.fn>;
+  searchText: ReturnType<typeof vi.fn>;
   readFile: ReturnType<typeof vi.fn>;
   writeFile: ReturnType<typeof vi.fn>;
   updateFile: ReturnType<typeof vi.fn>;
@@ -13,6 +14,7 @@ function fakeTransport(files: Record<string, string> = {}): ProjectTransport & {
   const contents = new Map(Object.entries(files));
   return {
     listFiles: vi.fn(async () => [...contents.keys()]),
+    searchText: vi.fn(async () => []),
     readFile: vi.fn(async (filePath: string) => contents.get(filePath) ?? ''),
     writeFile: vi.fn(async (filePath: string, content: string) => {
       contents.set(filePath, content);
@@ -118,5 +120,36 @@ describe('project and file services', () => {
     expect(updater('\\section{Intro}\nOld\n\\section{Next}\nNext')).toBe(
       '\\section{Intro}\nNew\n\n\\section{Next}\nNext',
     );
+  });
+
+  it('searches the selected project with defaults and explicit options', async () => {
+    const defaultTransport = fakeTransport();
+    const secondTransport = fakeTransport();
+    const matches = [{ filePath: 'chapters/one.tex', line: 2, text: 'Needle' }];
+    secondTransport.searchText.mockResolvedValue(matches);
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+        },
+      },
+      {
+        transportFactory: (project) =>
+          project.projectId === 'project' ? defaultTransport : secondTransport,
+      },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.searchText('intro')).resolves.toEqual([]);
+    expect(defaultTransport.searchText).toHaveBeenCalledWith('intro', '.tex', false, 100);
+
+    await expect(files.searchText('Needle', 'second', '.md', true, 3)).resolves.toEqual(matches);
+    expect(secondTransport.searchText).toHaveBeenCalledWith('Needle', '.md', true, 3);
+
+    await expect(files.searchText('')).rejects.toThrow('query');
+    await expect(files.searchText('query', undefined, '')).rejects.toThrow('extension');
+    await expect(files.searchText('query', undefined, '.tex', false, 0)).rejects.toThrow('positive integer');
+    await expect(files.searchText('query', undefined, '.tex', false, 1.5)).rejects.toThrow('positive integer');
   });
 });
