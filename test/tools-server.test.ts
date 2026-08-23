@@ -62,6 +62,8 @@ describe('MCP tool registry', () => {
     expect(services.fileService.listFiles).toHaveBeenCalledWith('second', '.md');
     expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: '' }), 'main.tex');
     expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', '.tex');
+    expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: 'all' }), 'main.tex');
+    expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', 'all');
 
     services.fileService.searchText.mockResolvedValue([
       { filePath: 'chapters/one.tex', line: 2, text: 'Needle' },

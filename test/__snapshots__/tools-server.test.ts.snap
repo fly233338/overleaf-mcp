@@ -15,7 +15,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "inputSchema": {
       "properties": {
         "extension": {
-          "description": "File extension filter (optional, e.g., ".tex")",
+          "description": "File extension filter (optional, defaults to ".tex"; examples: ".bib", ".sty"; use exact lowercase "all" to list every file)",
           "type": "string",
         },
         "projectName": {

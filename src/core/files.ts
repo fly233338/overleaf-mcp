@@ -13,7 +13,7 @@ export class FileService {
   constructor(private readonly projects: ProjectService) {}
 
   async listFiles(projectName?: string, extension = '.tex'): Promise<string[]> {
-    return this.projects.getProject(projectName).transport.listFiles(extension);
+    return this.projects.getProject(projectName).transport.listFiles(extension === 'all' ? '' : extension);
   }
 
   async searchText(

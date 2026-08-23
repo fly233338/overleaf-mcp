@@ -14,7 +14,8 @@ export const listFilesTool: Tool = {
       },
       extension: {
         type: 'string',
-        description: 'File extension filter (optional, e.g., ".tex")',
+        description:
+          'File extension filter (optional, defaults to ".tex"; examples: ".bib", ".sty"; use exact lowercase "all" to list every file)',
       },
     },
   },

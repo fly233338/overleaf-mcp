@@ -108,6 +108,13 @@ describe('project and file services', () => {
     const files = new FileService(projects);
 
     await expect(files.listFiles('second')).resolves.toEqual(['chapters/one.tex']);
+    expect(secondTransport.listFiles).toHaveBeenLastCalledWith('.tex');
+    await expect(files.listFiles('second', 'all')).resolves.toEqual(['chapters/one.tex']);
+    expect(secondTransport.listFiles).toHaveBeenLastCalledWith('');
+    await expect(files.listFiles('second', '.bib')).resolves.toEqual(['chapters/one.tex']);
+    expect(secondTransport.listFiles).toHaveBeenLastCalledWith('.bib');
+    await expect(files.listFiles('second', 'ALL')).resolves.toEqual(['chapters/one.tex']);
+    expect(secondTransport.listFiles).toHaveBeenLastCalledWith('ALL');
     await expect(files.readFile('chapters/one.tex', 'second')).resolves.toBe('second');
     await expect(files.writeFile('chapters/one.tex', 'updated', 'write it', 'second')).resolves.toBe('file written');
     expect(secondTransport.writeFile).toHaveBeenCalledWith('chapters/one.tex', 'updated', 'write it');

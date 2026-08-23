@@ -73,6 +73,41 @@ Final body.
 });
 
 describe('GitTransport', () => {
+  it('lists every ordinary project file for an empty extension and skips .git contents', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = path.join(root, 'repo');
+    await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await mkdir(path.join(repoPath, 'assets'), { recursive: true });
+    await mkdir(path.join(repoPath, 'styles'), { recursive: true });
+    await writeFile(path.join(repoPath, '.hidden'), 'hidden');
+    await writeFile(path.join(repoPath, '.git', 'config'), 'git metadata');
+    await writeFile(path.join(repoPath, 'assets', 'figure.png'), new Uint8Array([0, 1, 2, 3]));
+    await writeFile(path.join(repoPath, 'main.tex'), 'main');
+    await writeFile(path.join(repoPath, 'references.bib'), 'references');
+    await writeFile(path.join(repoPath, 'styles', 'journal.cls'), 'class');
+    await writeFile(path.join(repoPath, 'styles', 'local.sty'), 'style');
+
+    const calls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      calls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+
+    await expect(transport.listFiles('')).resolves.toEqual([
+      '.hidden',
+      path.join('assets', 'figure.png'),
+      'main.tex',
+      'references.bib',
+      path.join('styles', 'journal.cls'),
+      path.join('styles', 'local.sty'),
+    ]);
+    expect(calls).toEqual([['pull']]);
+  });
+
   it('keeps file operations inside the repository and stages one target', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
     const repoPath = path.join(root, 'repo');
