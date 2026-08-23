@@ -79,7 +79,7 @@ src/
 
 `ProjectTransport` 是 core 使用的最小 transport 接口，也是测试 fake transport 的边界。
 
-`FileService` 协调项目、Git transport 和 LaTeX parser，提供文件、章节和项目摘要相关操作。`listFiles()` 将公开参数中精确小写的 `"all"` 映射为空扩展过滤器；`replaceText()` 在 pull 后的最新内容中执行大小写敏感的唯一字面量替换；`writeSection()` 在 core 中完成 LaTeX replacement。两种局部写入都将 updater 交给 transport。
+`FileService` 协调项目、Git transport 和 LaTeX parser，提供文件和章节相关操作。`listFiles()` 将公开参数中精确小写的 `"all"` 映射为空扩展过滤器；`replaceText()` 在 pull 后的最新内容中执行大小写敏感的唯一字面量替换；`writeSection()` 在 core 中完成 LaTeX replacement。两种局部写入都将 updater 交给 transport。
 
 core 不依赖 MCP server 或 tools。
 
@@ -97,7 +97,7 @@ tool 只调用 core service，不直接执行 Git、读取配置、访问文件�
 
 所有 tools 在 `tools/index.ts` 中显式注册，不使用动态扫描或插件机制。
 
-`tools/files.ts` 定义文件浏览、搜索和读取 tools，包括支持 `extension: "all"` 的 `list_files`；`tools/edit.ts` 定义写入 tools，包括只允许唯一字面量匹配的 `replace_text`。当前 registry 显式注册 10 个 tools。
+`tools/files.ts` 定义文件浏览、搜索和读取 tools，包括支持 `extension: "all"` 的 `list_files`；`tools/edit.ts` 定义写入 tools，包括只允许唯一字面量匹配的 `replace_text`。当前 registry 显式注册 9 个 tools。
 
 ### `server.ts`
 

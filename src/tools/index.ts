@@ -4,11 +4,9 @@ import {
   handleListFiles,
   handleReadFile,
   handleSearchText,
-  handleStatusSummary,
   listFilesTool,
   readFileTool,
   searchTextTool,
-  statusSummaryTool,
 } from './files.js';
 import {
   handleReplaceText,
@@ -43,7 +41,6 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     readFileTool,
     getSectionsTool,
     getSectionContentTool,
-    statusSummaryTool,
     replaceTextTool,
     writeFileTool,
     writeSectionTool,
@@ -56,7 +53,6 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     read_file: (args) => handleReadFile(services.fileService, args),
     get_sections: (args) => handleGetSections(services.fileService, args),
     get_section_content: (args) => handleGetSectionContent(services.fileService, args),
-    status_summary: (args) => handleStatusSummary(services.fileService, args),
     replace_text: (args) => handleReplaceText(services.fileService, args),
     write_file: (args) => handleWriteFile(services.fileService, args),
     write_section: (args) => handleWriteSection(services.fileService, args),

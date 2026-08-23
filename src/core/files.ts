@@ -2,13 +2,6 @@ import { getSectionContent, parseSections, replaceSection } from '../latex/secti
 import type { Section, TextMatch } from '../types.js';
 import { ProjectService } from './project.js';
 
-export interface StatusSummary {
-  totalFiles: number;
-  mainFile: string | undefined;
-  totalSections: number;
-  files: string[];
-}
-
 export class FileService {
   constructor(private readonly projects: ProjectService) {}
 
@@ -69,19 +62,6 @@ export class FileService {
   async getSectionContent(filePath: string, sectionTitle: string, projectName?: string): Promise<string> {
     const content = await this.readFile(filePath, projectName);
     return getSectionContent(content, sectionTitle);
-  }
-
-  async statusSummary(projectName?: string): Promise<StatusSummary> {
-    const files = await this.listFiles(projectName);
-    const mainFile = files.find((filePath) => filePath.includes('main.tex')) ?? files[0];
-    const sections = mainFile ? await this.getSections(mainFile, projectName) : [];
-
-    return {
-      totalFiles: files.length,
-      mainFile,
-      totalSections: sections.length,
-      files: files.slice(0, 10),
-    };
   }
 
   async replaceText(

@@ -17,7 +17,6 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
     readFile: vi.fn(async () => 'content'),
     getSections: vi.fn(async () => []),
     getSectionContent: vi.fn(async () => 'section'),
-    statusSummary: vi.fn(async () => ({ totalFiles: 1, mainFile: 'main.tex', totalSections: 0, files: ['main.tex'] })),
     replaceText: vi.fn(async () => ''),
     writeFile: vi.fn(async () => ''),
     writeSection: vi.fn(async () => ''),
@@ -41,7 +40,6 @@ describe('MCP tool registry', () => {
       'read_file',
       'get_sections',
       'get_section_content',
-      'status_summary',
       'replace_text',
       'write_file',
       'write_section',
@@ -115,9 +113,6 @@ describe('MCP tool registry', () => {
       'section',
     );
     expect(services.fileService.getSectionContent).toHaveBeenCalledWith('chapters/one.tex', 'Intro', 'second');
-
-    expectTextResult(await registry.handlers.status_summary({ projectName: 'second' }), '{\n  "totalFiles": 1,\n  "mainFile": "main.tex",\n  "totalSections": 0,\n  "files": [\n    "main.tex"\n  ]\n}');
-    expect(services.fileService.statusSummary).toHaveBeenCalledWith('second');
 
     expectTextResult(
       await registry.handlers.replace_text({
@@ -194,7 +189,13 @@ describe('MCP server boundary', () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(10);
+    expect(listed.tools).toHaveLength(9);
+
+    const removedSummary = await client.callTool({ name: 'status_summary', arguments: {} });
+    expect(removedSummary.isError).toBe(true);
+    expect((removedSummary.content[0] as { text: string }).text).toBe(
+      'Error: Unknown tool: status_summary',
+    );
 
     const missingReplacement = await client.callTool({
       name: 'replace_text',
