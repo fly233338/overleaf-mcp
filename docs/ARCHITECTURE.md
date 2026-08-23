@@ -52,8 +52,9 @@ src/
 - 配置来源优先级
 - 配置校验
 - 转换为内部项目配置
+- 所有隐式候选均不存在时，在用户配置目录创建初始 `projects.json` 并返回专用首次启动信号
 
-配置错误通过异常返回，不负责启动或退出进程。
+配置错误和首次启动信号通过异常返回，不负责启动或退出进程。
 
 ### `transports/git/`
 
@@ -115,6 +116,7 @@ tool 只调用 core service，不直接执行 Git、读取配置、访问文件�
 - 构造 services
 - 创建 server
 - 连接 MCP stdio transport
+- 首次创建配置后将编辑提示写入 stderr 并正常结束
 - 处理顶层启动失败
 
 stdout 只用于 MCP 协议，诊断信息只写 stderr。

@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { resolveGitToken } from '../src/auth/git-token.js';
 import { loadProjectsConfig, userConfigDir } from '../src/config.js';
+import { ConfigurationCreatedError } from '../src/errors.js';
 
 async function tempDirectory(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-test-'));
@@ -166,31 +167,54 @@ describe('project configuration loading', () => {
     });
   });
 
-  it('falls back only when an implicit candidate is missing', async () => {
+  it('creates the user configuration after all implicit candidates are missing', async () => {
     const root = await tempDirectory();
     const configDir = path.join(root, 'config');
     const cwd = path.join(root, 'cwd');
     const packageDir = path.join(root, 'package');
+    const userPath = path.join(configDir, 'projects.json');
     const readPaths: string[] = [];
 
-    await expect(
-      loadProjectsConfig({
-        env: {},
-        configDir,
-        cwd,
-        packageDir,
-        readConfigFile: async (filePath) => {
-          readPaths.push(filePath);
-          throw errorWithCode('ENOENT');
-        },
-      }),
-    ).rejects.toThrow('No configuration found');
+    const firstStart = loadProjectsConfig({
+      env: {},
+      configDir,
+      cwd,
+      packageDir,
+      readConfigFile: async (filePath) => {
+        readPaths.push(filePath);
+        throw errorWithCode('ENOENT');
+      },
+    });
+
+    await expect(firstStart).rejects.toBeInstanceOf(ConfigurationCreatedError);
+    await expect(firstStart).rejects.toThrow(
+      `Configuration created at ${userPath}\nAdd your Overleaf project and restart.`,
+    );
 
     expect(readPaths).toEqual([
-      path.join(configDir, 'projects.json'),
+      userPath,
       path.join(cwd, 'projects.json'),
       path.join(packageDir, 'projects.json'),
     ]);
+    expect(JSON.parse(await readFile(userPath, 'utf8'))).toEqual({
+      projects: {
+        default: { name: 'Overleaf Project', projectId: '', gitToken: '' },
+      },
+    });
+
+    await writeFile(
+      userPath,
+      JSON.stringify({
+        projects: {
+          default: { name: 'Paper', projectId: 'project-id', gitToken: 'git-token' },
+        },
+      }),
+    );
+    await expect(loadProjectsConfig({ env: {}, configDir, cwd, packageDir })).resolves.toEqual({
+      projects: {
+        default: { name: 'Paper', projectId: 'project-id', gitToken: 'git-token' },
+      },
+    });
   });
 
   it('fails immediately when an implicit candidate contains invalid JSON', async () => {

@@ -1,10 +1,10 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveGitToken } from './auth/git-token.js';
-import { ConfigurationError } from './errors.js';
+import { ConfigurationCreatedError, ConfigurationError } from './errors.js';
 import type { ProjectConfig, ProjectsConfig } from './types.js';
 
 export interface ConfigLoadOptions {
@@ -26,6 +26,20 @@ interface RawProject {
 interface RawConfig {
   projects?: unknown;
 }
+
+const INITIAL_CONFIG = `${JSON.stringify(
+  {
+    projects: {
+      default: {
+        name: 'Overleaf Project',
+        projectId: '',
+        gitToken: '',
+      },
+    },
+  },
+  null,
+  2,
+)}\n`;
 
 export function userConfigDir(
   env: NodeJS.ProcessEnv = process.env,
@@ -83,14 +97,10 @@ export async function loadProjectsConfig(options: ConfigLoadOptions = {}): Promi
     }
   }
 
-  const candidateList = [...new Set(fallbackCandidates.map((candidate) => candidate.filePath))]
-    .map((filePath) => `      ${filePath}`)
-    .join('\n');
-  throw new ConfigurationError(
-    '[overleaf-mcp] No configuration found. Set OVERLEAF_PROJECT_ID together with ' +
-      'OVERLEAF_GIT_TOKEN or OVERLEAF_GIT_TOKEN_FILE, set OVERLEAF_PROJECTS_CONFIG, ' +
-      `or place projects.json at one of:\n${candidateList}`,
-  );
+  const userConfigPath = fallbackCandidates[0].filePath;
+  await mkdir(configDir, { recursive: true });
+  await writeFile(userConfigPath, INITIAL_CONFIG, { encoding: 'utf8', flag: 'wx' });
+  throw new ConfigurationCreatedError(userConfigPath);
 }
 
 async function readExplicitConfig(

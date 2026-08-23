@@ -20,6 +20,8 @@
 | Web session | 未支持 |
 | 浏览器自动化 | 未支持 |
 
+未设置环境变量或显式配置，且所有隐式配置候选均不存在时，首次启动会在用户配置目录创建 `overleaf-mcp/projects.json` 模板，在 stderr 输出文件位置和重启提示，然后结束。Linux/macOS 默认目录为 `~/.config`，Windows 使用 `%APPDATA%`。用户填写项目后，后续启动直接加载该配置。
+
 ## MCP Tools
 
 当前支持 8 个 tools：
