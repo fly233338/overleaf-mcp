@@ -109,6 +109,7 @@ export class GitTransport implements ProjectTransport {
   ): Promise<TextMatch[]> {
     await this.ensureRepository();
     const filePaths = await this.enumerateFiles(extension);
+    filePaths.sort((left, right) => left.localeCompare(right));
     const results: TextMatch[] = [];
     const searchQuery = caseSensitive ? query : query.toLowerCase();
 

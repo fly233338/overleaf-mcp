@@ -113,7 +113,10 @@ describe('GitTransport', () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
     const repoPath = path.join(root, 'repo');
     await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await mkdir(path.join(repoPath, 'a'), { recursive: true });
     await mkdir(path.join(repoPath, 'chapters', 'deep'), { recursive: true });
+    await writeFile(path.join(repoPath, 'a.tex'), 'NEEDLE root file');
+    await writeFile(path.join(repoPath, 'a', 'inner.tex'), 'needle nested file');
     await writeFile(path.join(repoPath, 'chapters', 'b.tex'), 'prefix\nNEEDLE in b');
     await writeFile(path.join(repoPath, 'chapters', 'a.tex'), 'needle needle\nNeedle in a');
     await writeFile(path.join(repoPath, 'chapters', 'deep', 'nested.tex'), 'needle deeper');
@@ -131,6 +134,8 @@ describe('GitTransport', () => {
     );
 
     await expect(transport.searchText('needle', '.tex', false, 10)).resolves.toEqual([
+      { filePath: 'a.tex', line: 1, text: 'NEEDLE root file' },
+      { filePath: path.join('a', 'inner.tex'), line: 1, text: 'needle nested file' },
       { filePath: path.join('chapters', 'a.tex'), line: 1, text: 'needle needle' },
       { filePath: path.join('chapters', 'a.tex'), line: 2, text: 'Needle in a' },
       { filePath: path.join('chapters', 'b.tex'), line: 2, text: 'NEEDLE in b' },
@@ -140,13 +145,16 @@ describe('GitTransport', () => {
     expect(calls.filter((args) => args[0] === 'pull')).toHaveLength(1);
 
     await expect(transport.searchText('needle', '.tex', true, 10)).resolves.toEqual([
+      { filePath: path.join('a', 'inner.tex'), line: 1, text: 'needle nested file' },
       { filePath: path.join('chapters', 'a.tex'), line: 1, text: 'needle needle' },
       { filePath: path.join('chapters', 'deep', 'nested.tex'), line: 1, text: 'needle deeper' },
     ]);
     await expect(transport.searchText('needle', '.md', false, 10)).resolves.toEqual([
       { filePath: 'notes.md', line: 1, text: 'needle markdown' },
     ]);
-    await expect(transport.searchText('needle', '.tex', false, 2)).resolves.toHaveLength(2);
+    await expect(transport.searchText('needle', '.tex', false, 1)).resolves.toEqual([
+      { filePath: 'a.tex', line: 1, text: 'NEEDLE root file' },
+    ]);
     expect(calls.filter((args) => args[0] === 'pull')).toHaveLength(4);
   });
 

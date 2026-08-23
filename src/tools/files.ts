@@ -122,14 +122,12 @@ export async function handleReadFile(
   fileService: FileService,
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
-  const filePath = requiredString(args.filePath);
-  const projectName = optionalString(args.projectName);
-  const startLine = optionalInteger(args.startLine);
-  const endLine = optionalInteger(args.endLine);
-  const content =
-    startLine === undefined && endLine === undefined
-      ? await fileService.readFile(filePath, projectName)
-      : await fileService.readFile(filePath, projectName, startLine, endLine);
+  const content = await fileService.readFile(
+    requiredString(args.filePath),
+    optionalString(args.projectName),
+    optionalInteger(args.startLine),
+    optionalInteger(args.endLine),
+  );
   return textResult(content);
 }
 
@@ -149,7 +147,7 @@ export function requiredString(value: unknown): string {
   return requiredStringValue(value);
 }
 
-export function optionalBoolean(value: unknown): boolean | undefined {
+function optionalBoolean(value: unknown): boolean | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -159,7 +157,7 @@ export function optionalBoolean(value: unknown): boolean | undefined {
   return value;
 }
 
-export function optionalInteger(value: unknown): number | undefined {
+function optionalInteger(value: unknown): number | undefined {
   if (value === undefined) {
     return undefined;
   }

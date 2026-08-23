@@ -45,7 +45,10 @@ export class FileService {
     assertPositiveInteger(startLine, 'startLine');
     assertPositiveInteger(endLine, 'endLine');
 
-    const lines = content.split(/\r\n|\n|\r/);
+    const lines = content.length === 0 ? [] : content.split(/\r\n|\n|\r/);
+    if (content.endsWith('\n') || content.endsWith('\r')) {
+      lines.pop();
+    }
     const firstLine = startLine ?? 1;
     const lastLine = endLine ?? lines.length;
     if (firstLine > lines.length) {

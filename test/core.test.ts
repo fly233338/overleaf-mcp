@@ -155,7 +155,14 @@ describe('project and file services', () => {
 
   it('reads complete files unchanged and selects inclusive line ranges', async () => {
     const content = 'one\r\ntwo\rthree\nfour';
-    const transport = fakeTransport({ 'notes.txt': content });
+    const transport = fakeTransport({
+      'notes.txt': content,
+      'terminated-lf.txt': 'one\n',
+      'terminated-crlf.txt': 'one\r\n',
+      'terminated-cr.txt': 'one\r',
+      'blank-line.txt': 'one\n\n',
+      'empty.txt': '',
+    });
     const projects = new ProjectService(
       {
         projects: {
@@ -178,5 +185,12 @@ describe('project and file services', () => {
     await expect(files.readFile('notes.txt', undefined, 1, 2.5)).rejects.toThrow('endLine');
     await expect(files.readFile('notes.txt', undefined, 3, 2)).rejects.toThrow('greater than');
     await expect(files.readFile('notes.txt', undefined, 5)).rejects.toThrow('beyond');
+
+    await expect(files.readFile('terminated-lf.txt')).resolves.toBe('one\n');
+    await expect(files.readFile('terminated-lf.txt', undefined, 2)).rejects.toThrow('beyond');
+    await expect(files.readFile('terminated-crlf.txt', undefined, 2)).rejects.toThrow('beyond');
+    await expect(files.readFile('terminated-cr.txt', undefined, 2)).rejects.toThrow('beyond');
+    await expect(files.readFile('blank-line.txt', undefined, 2, 2)).resolves.toBe('');
+    await expect(files.readFile('empty.txt', undefined, 1)).rejects.toThrow('beyond');
   });
 });

@@ -80,7 +80,7 @@ describe('MCP tool registry', () => {
       await registry.handlers.read_file({ filePath: 'chapters/one.tex', projectName: 'second' }),
       'content',
     );
-    expect(services.fileService.readFile).toHaveBeenCalledWith('chapters/one.tex', 'second');
+    expect(services.fileService.readFile).toHaveBeenCalledWith('chapters/one.tex', 'second', undefined, undefined);
 
     expectTextResult(
       await registry.handlers.read_file({
