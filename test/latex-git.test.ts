@@ -235,7 +235,7 @@ describe('GitTransport', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
         },
       },
       { transportFactory: () => transport },
@@ -271,7 +271,7 @@ describe('GitTransport', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
         },
       },
       { transportFactory: () => transport },

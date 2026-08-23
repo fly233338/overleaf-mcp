@@ -9,7 +9,7 @@ import { createToolRegistry } from '../src/tools/index.js';
 
 function fakeServices(fileOverrides: Record<string, unknown> = {}) {
   const projectService = {
-    listProjects: vi.fn(() => [{ id: 'default', name: 'Paper', projectId: 'project-id' }]),
+    listProjects: vi.fn(() => [{ id: 'paper', name: 'paper', projectId: 'project-id' }]),
   } as unknown as ProjectService;
   const fileService = {
     listFiles: vi.fn(async () => ['main.tex']),
@@ -55,7 +55,7 @@ describe('MCP tool registry', () => {
 
     expectTextResult(
       await registry.handlers.list_projects({}),
-      '[\n  {\n    "id": "default",\n    "name": "Paper",\n    "projectId": "project-id"\n  }\n]',
+      '[\n  {\n    "id": "paper",\n    "name": "paper",\n    "projectId": "project-id"\n  }\n]',
     );
 
     expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: '.md' }), 'main.tex');

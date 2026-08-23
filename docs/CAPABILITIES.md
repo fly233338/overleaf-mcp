@@ -22,6 +22,21 @@
 
 未设置环境变量或显式配置，且所有隐式配置候选均不存在时，首次启动会在用户配置目录创建 `overleaf-mcp/projects.json` 模板，在 stderr 输出文件位置和重启提示，然后结束。Linux/macOS 默认目录为 `~/.config`，Windows 使用 `%APPDATA%`。用户填写项目后，后续启动直接加载该配置。
 
+配置中的项目名称直接作为 `projects` 对象的键，项目值只包含 `projectId` 和 `gitToken`：
+
+```json
+{
+  "projects": {
+    "test-mcp": {
+      "projectId": "6943c3b439b88adfd6932e66",
+      "gitToken": "your-git-token"
+    }
+  }
+}
+```
+
+配置不使用单独的 `name` 字段。环境变量方式下，`OVERLEAF_PROJECT_NAME` 同样作为项目键；未设置时使用 `default`。
+
 ## MCP Tools
 
 当前支持 8 个 tools：
@@ -37,9 +52,7 @@
 | `write_file` | 已支持 |
 | `write_section` | 已支持 |
 
-这些 tools 保持当前 compatibility baseline 的公开参数和可见行为。
-
-未指定 `projectName` 时使用默认项目。
+tool 的 `projectName` 直接对应配置中的项目键；未指定时使用配置中的第一个项目。
 
 `list_files` 默认过滤 `.tex` 文件；精确传入小写 `"all"` 时列出除 `.git` 目录外的全部普通文件。
 

@@ -1,27 +1,27 @@
-# 首次启动自动创建配置
+# 项目名称直接作为配置键
 
 ## Summary
 
-当环境变量、显式配置和现有隐式候选都没有提供项目配置时，在用户配置目录创建可直接编辑的 `projects.json` 模板，向 stderr 提示路径和重启操作，然后正常结束。用户填写一次后，后续 MCP 客户端启动沿用现有配置加载流程。
+将 `projects` 对象的键作为唯一项目名称，删除项目值中重复的 `name` 字段，并发布补丁版本。
 
 ## Implementation
 
-- 保留现有环境变量、显式文件、用户目录、当前目录和包目录的配置优先级。
-- 仅在所有隐式候选都因不存在而跳过后创建用户配置，不改变无效 JSON、权限错误或显式文件缺失的错误行为。
-- 模板包含一个 `default` 项目以及待填写的 `name`、`projectId`、`gitToken`。
-- `config.ts` 创建目录和文件后抛出专用首次启动信号；`bin.ts` 将信号消息写入 stderr 并直接返回，不启动 MCP transport。
-- 文件创建使用排他写入，避免覆盖已存在的配置。
+- `ProjectConfig` 只保留 `projectId` 和 `gitToken`，不读取 `name` 字段。
+- 首次启动模板不再生成 `name` 字段。
+- 文件配置的项目键直接作为 `projectName` 和 `list_projects` 中的 `id`、`name`。
+- 环境变量配置使用 `OVERLEAF_PROJECT_NAME` 作为项目键，省略时键为 `default`。
+- tool 未传 `projectName` 时选择配置中的第一个项目。
+- 不保留旧 `name` 字段的兼容逻辑。
 
 ## Test and Acceptance
 
-- 首次无配置时按既有顺序检查所有隐式候选，只创建用户目录下的 `projects.json`。
-- 提示包含实际配置路径以及 `Add your Overleaf project and restart.`。
-- 模板是有效 JSON；填写后可由现有 loader 正常加载。
-- 其他配置来源、校验和错误行为保持不变。
+- 配置测试覆盖键名加载、首次模板和环境变量键名。
+- core 测试覆盖项目列表及省略 `projectName` 时选择首项。
+- MCP contract snapshot 记录新的 `projectName` 描述。
 - 依次通过 `npm run typecheck`、`npm test`、`npm run build` 和 `git diff --check`。
 
 ## Non-Changes
 
-- 不增加交互式配置向导、额外命令或新的配置格式。
-- 不修改 MCP tools、Git transport、版本号或发布配置。
-- 不执行 npm 发布。
+- 不修改 Git transport、tool 数量或注册顺序。
+- 不增加迁移层、fallback 或额外配置字段。
+- 不发布 README 改动，不执行 Git push 或 npm 以外的发布。

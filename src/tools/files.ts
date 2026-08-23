@@ -10,7 +10,7 @@ export const listFilesTool: Tool = {
     properties: {
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional, defaults to "default")',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
       extension: {
         type: 'string',
@@ -33,7 +33,7 @@ export const searchTextTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional)',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
       extension: {
         type: 'string',
@@ -65,7 +65,7 @@ export const readFileTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional)',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
       startLine: {
         type: 'integer',

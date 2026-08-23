@@ -15,7 +15,7 @@ export const previewFileTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional, defaults to "default")',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
     },
     required: ['filePath'],

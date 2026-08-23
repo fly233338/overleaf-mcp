@@ -38,8 +38,8 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
-          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+          paper: { projectId: 'project', gitToken: 'secret-token' },
+          second: { projectId: 'second', gitToken: 'second-secret' },
         },
       },
       { transportFactory: factory },
@@ -47,10 +47,10 @@ describe('project and file services', () => {
     const files = new FileService(projects);
 
     expect(projects.listProjects()).toEqual([
-      { id: 'default', name: 'Paper', projectId: 'project' },
-      { id: 'second', name: 'Second', projectId: 'second' },
+      { id: 'paper', name: 'paper', projectId: 'project' },
+      { id: 'second', name: 'second', projectId: 'second' },
     ]);
-    expect(projects.getProject().transport).toBe(projects.getProject('default').transport);
+    expect(projects.getProject().transport).toBe(projects.getProject('paper').transport);
     expect(factory).toHaveBeenCalledTimes(1);
     expect(() => projects.getProject('missing')).toThrow('Project "missing" not found');
   });
@@ -61,8 +61,8 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
-          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
+          second: { projectId: 'second', gitToken: 'second-secret' },
         },
       },
       {
@@ -100,8 +100,8 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
-          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
+          second: { projectId: 'second', gitToken: 'second-secret' },
         },
       },
       {
@@ -130,8 +130,8 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
-          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
+          second: { projectId: 'second', gitToken: 'second-secret' },
         },
       },
       {
@@ -164,7 +164,7 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
         },
       },
       { transportFactory: () => transport },
@@ -210,7 +210,7 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
         },
       },
       { transportFactory: () => transport },
@@ -258,8 +258,8 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
-          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
+          second: { projectId: 'second', gitToken: 'second-secret' },
         },
       },
       {
@@ -294,7 +294,7 @@ describe('project and file services', () => {
     const projects = new ProjectService(
       {
         projects: {
-          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          default: { projectId: 'project', gitToken: 'secret-token' },
         },
       },
       { transportFactory: () => transport },

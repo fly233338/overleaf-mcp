@@ -18,7 +18,6 @@ export interface ConfigLoadOptions {
 }
 
 interface RawProject {
-  name?: unknown;
   projectId?: unknown;
   gitToken?: unknown;
 }
@@ -30,8 +29,7 @@ interface RawConfig {
 const INITIAL_CONFIG = `${JSON.stringify(
   {
     projects: {
-      default: {
-        name: 'Overleaf Project',
+      'your-project-name': {
         projectId: '',
         gitToken: '',
       },
@@ -64,11 +62,11 @@ export async function loadProjectsConfig(options: ConfigLoadOptions = {}): Promi
   const tokenResolution = projectId ? await resolveGitToken({ env }) : undefined;
 
   if (projectId && tokenResolution) {
+    const projectName = env.OVERLEAF_PROJECT_NAME?.trim() || 'default';
     return validateConfig(
       {
         projects: {
-          default: {
-            name: env.OVERLEAF_PROJECT_NAME?.trim() || 'Overleaf Project',
+          [projectName]: {
             projectId,
             gitToken: tokenResolution.token,
           },
@@ -190,8 +188,7 @@ function validateConfig(data: unknown, sourceLabel: string): ProjectsConfig {
       );
     }
 
-    const name = typeof project.name === 'string' && project.name.trim() ? project.name.trim() : key;
-    projects[key] = { name, projectId, gitToken };
+    projects[key] = { projectId, gitToken };
   }
 
   return { projects };

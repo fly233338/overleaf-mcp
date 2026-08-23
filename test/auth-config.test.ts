@@ -78,7 +78,7 @@ describe('project configuration loading', () => {
 
     expect(config).toEqual({
       projects: {
-        default: { name: 'Env project', projectId: 'env-project', gitToken: 'env-secret' },
+        'Env project': { projectId: 'env-project', gitToken: 'env-secret' },
       },
     });
   });
@@ -103,7 +103,6 @@ describe('project configuration loading', () => {
     });
 
     expect(config.projects.explicit).toEqual({
-      name: 'explicit',
       projectId: 'explicit-id',
       gitToken: 'explicit-token',
     });
@@ -124,7 +123,6 @@ describe('project configuration loading', () => {
     });
 
     expect(config.projects.configured).toEqual({
-      name: 'configured',
       projectId: 'configured-id',
       gitToken: 'configured-token',
     });
@@ -198,7 +196,7 @@ describe('project configuration loading', () => {
     ]);
     expect(JSON.parse(await readFile(userPath, 'utf8'))).toEqual({
       projects: {
-        default: { name: 'Overleaf Project', projectId: '', gitToken: '' },
+        'your-project-name': { projectId: '', gitToken: '' },
       },
     });
 
@@ -206,13 +204,13 @@ describe('project configuration loading', () => {
       userPath,
       JSON.stringify({
         projects: {
-          default: { name: 'Paper', projectId: 'project-id', gitToken: 'git-token' },
+          'test-mcp': { projectId: 'project-id', gitToken: 'git-token' },
         },
       }),
     );
     await expect(loadProjectsConfig({ env: {}, configDir, cwd, packageDir })).resolves.toEqual({
       projects: {
-        default: { name: 'Paper', projectId: 'project-id', gitToken: 'git-token' },
+        'test-mcp': { projectId: 'project-id', gitToken: 'git-token' },
       },
     });
   });
@@ -286,7 +284,7 @@ describe('project configuration loading', () => {
   });
 
   it('rejects invalid project shapes without exposing token values', async () => {
-    const invalid = JSON.stringify({ projects: { paper: { name: 'Paper', projectId: 'bad id', gitToken: 'secret-token' } } });
+    const invalid = JSON.stringify({ projects: { paper: { projectId: 'bad id', gitToken: 'secret-token' } } });
     const failure = loadProjectsConfig({
       env: { OVERLEAF_PROJECTS_CONFIG: 'projects.json' },
       readConfigFile: async () => invalid,

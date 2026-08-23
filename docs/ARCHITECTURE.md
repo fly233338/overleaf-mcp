@@ -51,7 +51,7 @@ src/
 - 项目配置加载
 - 配置来源优先级
 - 配置校验
-- 转换为内部项目配置
+- 将 `projects` 对象的键直接作为项目名称，项目值只包含 `projectId` 和 `gitToken`
 - 所有隐式候选均不存在时，在用户配置目录创建初始 `projects.json` 并返回专用首次启动信号
 
 配置错误和首次启动信号通过异常返回，不负责启动或退出进程。
@@ -75,7 +75,7 @@ src/
 
 负责应用层用例。
 
-`ProjectService` 管理项目配置、项目选择和对应的 Git transport。
+`ProjectService` 管理项目配置、项目选择和对应的 Git transport。公开的 `projectName` 直接对应 `projects` 对象的键；未指定时选择配置中的第一个项目。
 
 `ProjectTransport` 是 core 使用的最小 transport 接口，也是测试 fake transport 的边界。
 

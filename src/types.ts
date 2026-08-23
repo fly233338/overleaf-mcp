@@ -1,5 +1,4 @@
 export interface ProjectConfig {
-  name: string;
   projectId: string;
   gitToken: string;
 }

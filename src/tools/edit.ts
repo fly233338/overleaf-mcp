@@ -35,7 +35,7 @@ export const replaceTextTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional, defaults to "default")',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
     },
     required: ['filePath', 'oldText', 'newText', 'commitMessage'],
@@ -62,7 +62,7 @@ export const writeFileTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional)',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
     },
     required: ['filePath', 'content', 'commitMessage'],
@@ -94,7 +94,7 @@ export const writeSectionTool: Tool = {
       },
       projectName: {
         type: 'string',
-        description: 'Project identifier (optional)',
+        description: 'Project name (optional, defaults to the first configured project)',
       },
     },
     required: ['filePath', 'sectionTitle', 'newContent', 'commitMessage'],

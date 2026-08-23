@@ -19,7 +19,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional, defaults to "default")",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
       },
@@ -36,7 +36,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional, defaults to "default")",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
       },
@@ -65,7 +65,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "integer",
         },
         "projectName": {
-          "description": "Project identifier (optional)",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
         "query": {
@@ -94,7 +94,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional)",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
         "startLine": {
@@ -131,7 +131,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional, defaults to "default")",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
         "replaceAll": {
@@ -167,7 +167,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional)",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
       },
@@ -197,7 +197,7 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
           "type": "string",
         },
         "projectName": {
-          "description": "Project identifier (optional)",
+          "description": "Project name (optional, defaults to the first configured project)",
           "type": "string",
         },
         "sectionTitle": {

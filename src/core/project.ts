@@ -27,24 +27,25 @@ export class ProjectService {
   listProjects(): ProjectSummary[] {
     return Object.entries(this.config.projects).map(([id, project]) => ({
       id,
-      name: project.name,
+      name: id,
       projectId: project.projectId,
     }));
   }
 
-  getProject(projectName = 'default'): SelectedProject {
-    const project = this.config.projects[projectName];
+  getProject(projectName?: string): SelectedProject {
+    const selectedName = projectName ?? Object.keys(this.config.projects)[0] ?? 'default';
+    const project = this.config.projects[selectedName];
     if (!project) {
-      throw new Error(`Project "${projectName}" not found in configuration`);
+      throw new Error(`Project "${selectedName}" not found in configuration`);
     }
 
-    let transport = this.transports.get(projectName);
+    let transport = this.transports.get(selectedName);
     if (!transport) {
       transport = this.transportFactory(project, this.transportOptions);
-      this.transports.set(projectName, transport);
+      this.transports.set(selectedName, transport);
     }
 
-    return { id: projectName, config: project, transport };
+    return { id: selectedName, config: project, transport };
   }
 
 }
