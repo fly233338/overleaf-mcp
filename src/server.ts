@@ -13,7 +13,7 @@ export function createServer(services: ToolServices): Server {
   const server = new Server(
     {
       name: 'overleaf-mcp-server',
-      version: '1.0.0',
+      version: '1.1.0',
     },
     {
       capabilities: {
