@@ -8,3 +8,4 @@ projects.json
 *.log
 *.tgz
 AGENTS.md
+.codex/
