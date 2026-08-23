@@ -97,6 +97,33 @@ describe('project and file services', () => {
     );
   });
 
+  it('previews one complete file from the selected project', async () => {
+    const defaultTransport = fakeTransport({ 'main.tex': 'default' });
+    const secondTransport = fakeTransport({ 'chapters/one.tex': '\\section{Intro}\nBody' });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+        },
+      },
+      {
+        transportFactory: (project) =>
+          project.projectId === 'project' ? defaultTransport : secondTransport,
+      },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.previewFile('chapters/one.tex', 'second')).resolves.toEqual({
+      filePath: 'chapters/one.tex',
+      lineCount: 2,
+      items: [{ type: 'section', title: 'Intro', startLine: 1, endLine: 2 }],
+    });
+    expect(secondTransport.readFile).toHaveBeenCalledTimes(1);
+    expect(secondTransport.readFile).toHaveBeenCalledWith('chapters/one.tex');
+    expect(defaultTransport.readFile).not.toHaveBeenCalled();
+  });
+
   it('replaces exactly one literal text match in the selected project', async () => {
     const defaultTransport = fakeTransport({ 'main.tex': 'default' });
     const secondTransport = fakeTransport({

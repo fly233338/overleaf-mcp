@@ -13,6 +13,11 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
   } as unknown as ProjectService;
   const fileService = {
     listFiles: vi.fn(async () => ['main.tex']),
+    previewFile: vi.fn(async () => ({
+      filePath: 'main.tex',
+      lineCount: 2,
+      items: [{ type: 'section', title: 'Intro', startLine: 1, endLine: 2 }],
+    })),
     searchText: vi.fn(async () => []),
     readFile: vi.fn(async () => 'content'),
     getSections: vi.fn(async () => []),
@@ -36,6 +41,7 @@ describe('MCP tool registry', () => {
     expect(registry.definitions.map((tool) => tool.name)).toEqual([
       'list_projects',
       'list_files',
+      'preview_file',
       'search_text',
       'read_file',
       'get_sections',
@@ -62,6 +68,12 @@ describe('MCP tool registry', () => {
     expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', '.tex');
     expectTextResult(await registry.handlers.list_files({ projectName: 'second', extension: 'all' }), 'main.tex');
     expect(services.fileService.listFiles).toHaveBeenLastCalledWith('second', 'all');
+
+    expectTextResult(
+      await registry.handlers.preview_file({ filePath: 'chapters/one.tex', projectName: 'second' }),
+      '{\n  "filePath": "main.tex",\n  "lineCount": 2,\n  "items": [\n    {\n      "type": "section",\n      "title": "Intro",\n      "startLine": 1,\n      "endLine": 2\n    }\n  ]\n}',
+    );
+    expect(services.fileService.previewFile).toHaveBeenCalledWith('chapters/one.tex', 'second');
 
     services.fileService.searchText.mockResolvedValue([
       { filePath: 'chapters/one.tex', line: 2, text: 'Needle' },
@@ -189,7 +201,7 @@ describe('MCP server boundary', () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(9);
+    expect(listed.tools).toHaveLength(10);
 
     const removedSummary = await client.callTool({ name: 'status_summary', arguments: {} });
     expect(removedSummary.isError).toBe(true);

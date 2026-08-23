@@ -39,3 +39,35 @@ export interface Section {
   type: SectionType;
   index: number;
 }
+
+export interface PreviewHeadingItem {
+  type: SectionType;
+  title: string;
+  startLine: number;
+  endLine: number;
+}
+
+export interface PreviewReferenceItem {
+  type: 'input' | 'include';
+  target: string;
+  startLine: number;
+}
+
+export interface PreviewFloatItem {
+  type: 'figure' | 'table';
+  startLine: number;
+  endLine: number;
+  caption?: string;
+  label?: string;
+}
+
+export type PreviewItem = PreviewHeadingItem | PreviewReferenceItem | PreviewFloatItem;
+
+export interface LatexFilePreview {
+  lineCount: number;
+  items: PreviewItem[];
+}
+
+export interface FilePreview extends LatexFilePreview {
+  filePath: string;
+}

@@ -28,6 +28,26 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "list_files",
   },
   {
+    "description": "Preview the structure and line ranges of a LaTeX file",
+    "inputSchema": {
+      "properties": {
+        "filePath": {
+          "description": "Path to the LaTeX file",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional, defaults to "default")",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+      ],
+      "type": "object",
+    },
+    "name": "preview_file",
+  },
+  {
     "description": "Search project text files and return matching lines",
     "inputSchema": {
       "properties": {

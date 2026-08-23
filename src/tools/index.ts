@@ -17,6 +17,7 @@ import {
   writeSectionTool,
 } from './edit.js';
 import { handleGetSectionContent, handleGetSections, getSectionContentTool, getSectionsTool } from './sections.js';
+import { handlePreviewFile, previewFileTool } from './preview.js';
 import { handleListProjects, listProjectsTool } from './projects.js';
 import type { FileService } from '../core/files.js';
 import type { ProjectService } from '../core/project.js';
@@ -37,6 +38,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
   const definitions = [
     listProjectsTool,
     listFilesTool,
+    previewFileTool,
     searchTextTool,
     readFileTool,
     getSectionsTool,
@@ -49,6 +51,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
   const handlers: Record<string, ToolHandler> = {
     list_projects: async () => handleListProjects(services.projectService),
     list_files: (args) => handleListFiles(services.fileService, args),
+    preview_file: (args) => handlePreviewFile(services.fileService, args),
     search_text: (args) => handleSearchText(services.fileService, args),
     read_file: (args) => handleReadFile(services.fileService, args),
     get_sections: (args) => handleGetSections(services.fileService, args),
