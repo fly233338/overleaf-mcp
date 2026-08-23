@@ -149,6 +149,41 @@ exports[`MCP tool registry > keeps the complete ordered compatibility catalog 1`
     "name": "status_summary",
   },
   {
+    "description": "Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.",
+    "inputSchema": {
+      "properties": {
+        "commitMessage": {
+          "description": "Git commit message",
+          "type": "string",
+        },
+        "filePath": {
+          "description": "Path to the file",
+          "type": "string",
+        },
+        "newText": {
+          "description": "Replacement text (may be empty to delete the match)",
+          "type": "string",
+        },
+        "oldText": {
+          "description": "Non-empty case-sensitive literal text that must occur exactly once",
+          "type": "string",
+        },
+        "projectName": {
+          "description": "Project identifier (optional, defaults to "default")",
+          "type": "string",
+        },
+      },
+      "required": [
+        "filePath",
+        "oldText",
+        "newText",
+        "commitMessage",
+      ],
+      "type": "object",
+    },
+    "name": "replace_text",
+  },
+  {
     "description": "Write content to a file in an Overleaf project and push to Overleaf",
     "inputSchema": {
       "properties": {

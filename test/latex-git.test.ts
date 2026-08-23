@@ -187,6 +187,33 @@ describe('GitTransport', () => {
     ]);
   });
 
+  it('leaves the target unchanged and stops after pull when an updater rejects the content', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
+    const repoPath = path.join(root, 'repo');
+    const target = 'main.tex';
+    await mkdir(path.join(repoPath, '.git'), { recursive: true });
+    await writeFile(path.join(repoPath, target), 'unchanged');
+
+    const calls: string[][] = [];
+    const runGit: GitCommandRunner = async (args) => {
+      calls.push([...args]);
+      return { stdout: '', stderr: '' };
+    };
+    const transport = new GitTransport(
+      { projectId: 'project', gitToken: 'secret-token' },
+      { repoPath, tempDir: root, runGit },
+    );
+
+    await expect(
+      transport.updateFile(target, 'rejected update', () => {
+        throw new Error('oldText was not found');
+      }),
+    ).rejects.toThrow('not found');
+
+    expect(await readFile(path.join(repoPath, target), 'utf8')).toBe('unchanged');
+    expect(calls).toEqual([['pull']]);
+  });
+
   it('does not clone after a non-ENOENT repository access error', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'overleaf-mcp-git-test-'));
     const repoPath = `${root}${String.fromCharCode(0)}repo`;

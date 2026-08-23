@@ -18,6 +18,7 @@ function fakeServices(fileOverrides: Record<string, unknown> = {}) {
     getSections: vi.fn(async () => []),
     getSectionContent: vi.fn(async () => 'section'),
     statusSummary: vi.fn(async () => ({ totalFiles: 1, mainFile: 'main.tex', totalSections: 0, files: ['main.tex'] })),
+    replaceText: vi.fn(async () => ''),
     writeFile: vi.fn(async () => ''),
     writeSection: vi.fn(async () => ''),
     ...fileOverrides,
@@ -41,6 +42,7 @@ describe('MCP tool registry', () => {
       'get_sections',
       'get_section_content',
       'status_summary',
+      'replace_text',
       'write_file',
       'write_section',
     ]);
@@ -116,6 +118,24 @@ describe('MCP tool registry', () => {
     expect(services.fileService.statusSummary).toHaveBeenCalledWith('second');
 
     expectTextResult(
+      await registry.handlers.replace_text({
+        filePath: 'chapters/one.tex',
+        oldText: 'old text',
+        newText: '',
+        commitMessage: 'delete old text',
+        projectName: 'second',
+      }),
+      'Text replaced and pushed successfully.',
+    );
+    expect(services.fileService.replaceText).toHaveBeenCalledWith(
+      'chapters/one.tex',
+      'old text',
+      '',
+      'delete old text',
+      'second',
+    );
+
+    expectTextResult(
       await registry.handlers.write_file({
         filePath: 'chapters/one.tex',
         content: 'new file',
@@ -157,6 +177,12 @@ describe('MCP server boundary', () => {
       readFile: vi.fn(async () => {
         throw new Error('https://git:secret-token@git.overleaf.com/project-id');
       }),
+      replaceText: vi.fn(async (_filePath: string, oldText: string) => {
+        if (oldText === 'missing') {
+          throw new Error('oldText was not found');
+        }
+        throw new Error('oldText is not unique; provide longer context');
+      }),
     });
     const server = createServer(services);
     const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
@@ -166,7 +192,31 @@ describe('MCP server boundary', () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools).toHaveLength(9);
+    expect(listed.tools).toHaveLength(10);
+
+    const missingReplacement = await client.callTool({
+      name: 'replace_text',
+      arguments: {
+        filePath: 'main.tex',
+        oldText: 'missing',
+        newText: 'new',
+        commitMessage: 'replace text',
+      },
+    });
+    expect(missingReplacement.isError).toBe(true);
+    expect((missingReplacement.content[0] as { text: string }).text).toBe('Error: oldText was not found');
+
+    const duplicateReplacement = await client.callTool({
+      name: 'replace_text',
+      arguments: {
+        filePath: 'main.tex',
+        oldText: 'duplicate',
+        newText: 'new',
+        commitMessage: 'replace text',
+      },
+    });
+    expect(duplicateReplacement.isError).toBe(true);
+    expect((duplicateReplacement.content[0] as { text: string }).text).toContain('not unique');
 
     const failed = await client.callTool({ name: 'read_file', arguments: { filePath: 'main.tex' } });
     expect(failed.isError).toBe(true);

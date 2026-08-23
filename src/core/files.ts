@@ -84,6 +84,33 @@ export class FileService {
     };
   }
 
+  async replaceText(
+    filePath: string,
+    oldText: string,
+    newText: string,
+    commitMessage: string,
+    projectName?: string,
+  ): Promise<string> {
+    if (oldText.length === 0) {
+      throw new Error('oldText must not be empty');
+    }
+    if (oldText === newText) {
+      throw new Error('newText must differ from oldText');
+    }
+
+    return this.projects.getProject(projectName).transport.updateFile(filePath, commitMessage, (content) => {
+      const matchIndex = content.indexOf(oldText);
+      if (matchIndex === -1) {
+        throw new Error('oldText was not found');
+      }
+      if (content.indexOf(oldText, matchIndex + 1) !== -1) {
+        throw new Error('oldText is not unique; provide longer context');
+      }
+
+      return content.slice(0, matchIndex) + newText + content.slice(matchIndex + oldText.length);
+    });
+  }
+
   async writeFile(filePath: string, content: string, commitMessage: string, projectName?: string): Promise<string> {
     return this.projects.getProject(projectName).transport.writeFile(filePath, content, commitMessage);
   }

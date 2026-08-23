@@ -3,6 +3,38 @@ import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { FileService } from '../core/files.js';
 import { optionalString, requiredString } from './files.js';
 
+export const replaceTextTool: Tool = {
+  name: 'replace_text',
+  description:
+    'Replace exactly one case-sensitive literal text match in a file and push to Overleaf. The replacement is rejected unless oldText occurs exactly once.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      filePath: {
+        type: 'string',
+        description: 'Path to the file',
+      },
+      oldText: {
+        type: 'string',
+        description: 'Non-empty case-sensitive literal text that must occur exactly once',
+      },
+      newText: {
+        type: 'string',
+        description: 'Replacement text (may be empty to delete the match)',
+      },
+      commitMessage: {
+        type: 'string',
+        description: 'Git commit message',
+      },
+      projectName: {
+        type: 'string',
+        description: 'Project identifier (optional, defaults to "default")',
+      },
+    },
+    required: ['filePath', 'oldText', 'newText', 'commitMessage'],
+  },
+};
+
 export const writeFileTool: Tool = {
   name: 'write_file',
   description: 'Write content to a file in an Overleaf project and push to Overleaf',
@@ -61,6 +93,20 @@ export const writeSectionTool: Tool = {
     required: ['filePath', 'sectionTitle', 'newContent', 'commitMessage'],
   },
 };
+
+export async function handleReplaceText(
+  fileService: FileService,
+  args: Record<string, unknown>,
+): Promise<CallToolResult> {
+  const result = await fileService.replaceText(
+    requiredString(args.filePath),
+    requiredString(args.oldText),
+    requiredString(args.newText),
+    requiredString(args.commitMessage),
+    optionalString(args.projectName),
+  );
+  return textResult(result || 'Text replaced and pushed successfully.');
+}
 
 export async function handleWriteFile(
   fileService: FileService,

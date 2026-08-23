@@ -122,6 +122,75 @@ describe('project and file services', () => {
     );
   });
 
+  it('replaces exactly one literal text match in the selected project', async () => {
+    const defaultTransport = fakeTransport({ 'main.tex': 'default' });
+    const secondTransport = fakeTransport({
+      'abstract.txt': 'before old text after',
+      'chapters/one.tex': 'before\nold text\nafter',
+    });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+          second: { name: 'Second', projectId: 'second', gitToken: 'second-secret' },
+        },
+      },
+      {
+        transportFactory: (project) =>
+          project.projectId === 'project' ? defaultTransport : secondTransport,
+      },
+    );
+    const files = new FileService(projects);
+
+    await expect(
+      files.replaceText('chapters/one.tex', 'before\nold text', 'updated', 'replace text', 'second'),
+    ).resolves.toBe('file updated');
+    expect(secondTransport.updateFile).toHaveBeenCalledWith(
+      'chapters/one.tex',
+      'replace text',
+      expect.any(Function),
+    );
+    const updater = secondTransport.updateFile.mock.calls[0][2] as (content: string) => string;
+    expect(updater('before\nold text\nafter')).toBe('updated\nafter');
+
+    await expect(
+      files.replaceText('abstract.txt', 'old text', 'new text', 'replace single line', 'second'),
+    ).resolves.toBe('file updated');
+    await expect(files.readFile('abstract.txt', 'second')).resolves.toBe('before new text after');
+    expect(defaultTransport.updateFile).not.toHaveBeenCalled();
+  });
+
+  it('allows deleting a unique match and rejects unsafe replacements without changing content', async () => {
+    const transport = fakeTransport({ 'main.tex': 'ababa' });
+    const projects = new ProjectService(
+      {
+        projects: {
+          default: { name: 'Paper', projectId: 'project', gitToken: 'secret-token' },
+        },
+      },
+      { transportFactory: () => transport },
+    );
+    const files = new FileService(projects);
+
+    await expect(files.replaceText('main.tex', 'bab', '', 'delete text')).resolves.toBe('file updated');
+    await expect(files.readFile('main.tex')).resolves.toBe('aa');
+
+    await expect(files.replaceText('main.tex', '', 'new', 'empty old text')).rejects.toThrow('oldText');
+    await expect(files.replaceText('main.tex', 'aa', 'aa', 'same text')).rejects.toThrow('differ');
+    expect(transport.updateFile).toHaveBeenCalledTimes(1);
+
+    await expect(files.replaceText('main.tex', 'missing', 'new', 'missing text')).rejects.toThrow('not found');
+    await expect(files.readFile('main.tex')).resolves.toBe('aa');
+
+    await transport.writeFile('main.tex', 'repeat repeat', 'reset');
+    await expect(files.replaceText('main.tex', 'repeat', 'new', 'duplicate text')).rejects.toThrow('not unique');
+    await expect(files.readFile('main.tex')).resolves.toBe('repeat repeat');
+
+    await transport.writeFile('main.tex', 'aaa', 'reset overlap');
+    await expect(files.replaceText('main.tex', 'aa', 'new', 'overlapping text')).rejects.toThrow('not unique');
+    await expect(files.readFile('main.tex')).resolves.toBe('aaa');
+  });
+
   it('searches the selected project with defaults and explicit options', async () => {
     const defaultTransport = fakeTransport();
     const secondTransport = fakeTransport();

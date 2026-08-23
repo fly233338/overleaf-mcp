@@ -10,7 +10,14 @@ import {
   searchTextTool,
   statusSummaryTool,
 } from './files.js';
-import { handleWriteFile, handleWriteSection, writeFileTool, writeSectionTool } from './edit.js';
+import {
+  handleReplaceText,
+  handleWriteFile,
+  handleWriteSection,
+  replaceTextTool,
+  writeFileTool,
+  writeSectionTool,
+} from './edit.js';
 import { handleGetSectionContent, handleGetSections, getSectionContentTool, getSectionsTool } from './sections.js';
 import { handleListProjects, listProjectsTool } from './projects.js';
 import type { FileService } from '../core/files.js';
@@ -37,6 +44,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     getSectionsTool,
     getSectionContentTool,
     statusSummaryTool,
+    replaceTextTool,
     writeFileTool,
     writeSectionTool,
   ] as const;
@@ -49,6 +57,7 @@ export function createToolRegistry(services: ToolServices): ToolRegistry {
     get_sections: (args) => handleGetSections(services.fileService, args),
     get_section_content: (args) => handleGetSectionContent(services.fileService, args),
     status_summary: (args) => handleStatusSummary(services.fileService, args),
+    replace_text: (args) => handleReplaceText(services.fileService, args),
     write_file: (args) => handleWriteFile(services.fileService, args),
     write_section: (args) => handleWriteSection(services.fileService, args),
   };
